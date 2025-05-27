@@ -1,0 +1,11 @@
+## Get invoices
+GET http://localhost:4500/api/billing/invoices?page=2&pageSize=10&rfc=GCO980828GY0
+
+### Get File invoices
+POST http://localhost:4500/api/billing/invoices/file
+Content-Type: application/json
+
+{
+  "type":"pdf",
+  "filename":"AF.2693.pdf"
+}

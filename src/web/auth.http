@@ -1,0 +1,28 @@
+### login User
+POST  http://localhost:4500/api/auth/user
+Content-Type: application/json
+
+{
+  "email":"eeramirez@tuvansa.com.mx",
+  "password":"18309138Zad"
+}
+
+### Create user
+POST  http://localhost:4500/api/auth/user/register
+Content-Type: application/json
+
+{
+  "name":"Juan",
+  "lastname":"Maldonado",
+  "username":"jmaldonado",
+  "email":"jmaldonado@tuvansa.com.mx",
+  "branch":"cancun",
+  "password":"Temp123"
+}
+
+
+### Renew Token
+GET  http://localhost:4500/api/auth/user/renew
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQyMjVlYzBlLWZhMjktNDY3Zi04NTI3LWM5NzMwMTQ3ZjU2NyIsImlhdCI6MTc0ODAyNjc1NywiZXhwIjoxNzQ4MDMzOTU3fQ.BO5yUHOy1ZtA9pBdJcG7zyjaMeyxXsk9H4cPTiqQ-6M
+
+

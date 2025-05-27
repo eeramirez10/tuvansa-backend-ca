@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+
+// Roles and Branches
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Branch {
+  MEXICO
+  MONTERREY
+  VERACRUZ
+  MEXICALI
+  QUERETARO
+  CANCUN
+}
+
+// User model for login with username, branch, and active status
+model User {
+  id        String    @id @default(uuid()) @db.Uuid
+  username   String    @unique
+  email      String    @unique
+  password   String
+  name       String
+  lastname   String
+  role       Role      @default(USER)
+  branch     Branch
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+}
+
+// Client model for login with RFC, business name, tax regime, and active status
+model Client {
+  id        String    @id @default(uuid()) @db.Uuid
+  email           String           @unique
+  rfc             String           @unique
+  businessName    String           // Razón social, nombre de la empresa
+  taxRegime       String           // Régimen fiscal
+  password        String
+  name            String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+}
+
+
+
