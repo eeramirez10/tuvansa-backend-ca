@@ -32,5 +32,9 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.1",
     "prisma": "^6.8.2"
+  },
+    "engines": {
+    "node": "18.x",
+    "npm": "10.x"
   }
 }
