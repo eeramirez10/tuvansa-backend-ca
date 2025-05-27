@@ -77,9 +77,9 @@ export class AuthController {
 
   }
 
-  renewToken = (req: ReqUser, res: Response) => {
+  renewToken = (req: Request, res: Response) => {
 
-    const user = req.user
+    const user = req.body.user
 
 
     new RenewTokenUseCase()
