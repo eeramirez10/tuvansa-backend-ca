@@ -12,6 +12,7 @@ import { ReqUser } from '../middlewares/auth.middleware';
 
 
 
+
 export class AuthController {
 
   constructor(private readonly authRepository: AuthRepository<any, CreateAuthDto>) { }
@@ -77,13 +78,13 @@ export class AuthController {
 
   }
 
-  renewToken = (req: Request, res: Response) => {
+  renewToken = (req: ReqUser, res: Response) => {
 
-    const user = req.body.user
+    const user = req.user
 
 
     new RenewTokenUseCase()
-      .execute(user)
+      .execute(user!)
       .then((data) => {
         res.json(data)
       })

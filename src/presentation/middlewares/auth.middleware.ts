@@ -16,7 +16,7 @@ export class AuthMiddleware {
 
 
 
-  static validateJWT = async (req: Request, res: Response, next: NextFunction) => {
+  static validateJWT = async (req: ReqUser, res: Response, next: NextFunction) => {
 
     const authorization = req.header('Authorization');
     if (!authorization) {
@@ -57,10 +57,8 @@ export class AuthMiddleware {
         return
       }
 
-      console.log(user)
-
-
-      req.body.user = user;
+    
+      req.user = user;
 
 
       next();
