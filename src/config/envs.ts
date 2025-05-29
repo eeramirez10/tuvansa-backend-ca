@@ -5,7 +5,7 @@ export class Envs {
 
   static getEnvs() {
     return {
-      
+
       PORT: get('PORT').required().asPortNumber(),
       HOST_DB_MYSQL: get('HOST_DB_MYSQL').required().asString(),
       USER_MYSQL: get('USER_MYSQL').required().asString(),
@@ -16,7 +16,11 @@ export class Envs {
       FTP_USER: get('FTP_USER').required().asString(),
       FTP_PASS: get('FTP_PASS').required().asString(),
       FTP_SECURE: get('FTP_SECURE').required().asBool() ?? false,
-      JWT_SEED: get('JWT_SEED').required().asString()
+      JWT_SEED: get('JWT_SEED').required().asString(),
+      PATH_CERT: get('PATH_CERT').required().asString(),
+      PRIVKEY: get('PRIVKEY').required().asString(),
+      CERT: get('CERT').required().asString(),
+      CHAIN: get('CHAIN').required().asString(),
     }
   }
 }

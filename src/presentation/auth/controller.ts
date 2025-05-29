@@ -78,13 +78,13 @@ export class AuthController {
 
   }
 
-  renewToken = (req: ReqUser, res: Response) => {
+  renewToken = (req: Request, res: Response) => {
 
-    const user = req.user
+    const user = (req as ReqUser).user
 
 
     new RenewTokenUseCase()
-      .execute(user!)
+      .execute(user)
       .then((data) => {
         res.json(data)
       })
