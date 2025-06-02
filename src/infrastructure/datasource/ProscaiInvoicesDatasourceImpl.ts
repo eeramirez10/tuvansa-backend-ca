@@ -32,18 +32,22 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
 
     const offset = search ? 0 : (page - 1) * pageSize;
 
-    const whereClauses = [
+    let whereClauses = [
       'f.DESFACT = ?',
       'f.DSTATUSCFD = ?',
       'f.DMULTICIA = ?',
       "(MID(DNUM,1,1)= 'F' OR MID(DNUM,1,1)= 'D')"
     ];
 
-    let likeClauses = [
+    let likeClauses = []
 
-    ]
+    let values: any[] = [1, 3, selectedBranchOffice];
 
-    const values: any[] = [1, 3, selectedBranchOffice];
+
+    if (branchOffice === 'CANCUN') {
+      whereClauses[2] = '(f.DMULTICIA = 6 OR f.DMULTICIA = 7)'
+      values = [1, 3]
+    }
 
     if (startDateValueDefault) {
       whereClauses.push('f.DFECHA >= ?');
@@ -108,7 +112,7 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
       [...values, pageSize, offset]
     );
 
-  
+
     const items = rows.map((v) => InvoiceMapper.jsonToEntity(v));
 
 

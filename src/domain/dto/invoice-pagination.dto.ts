@@ -11,9 +11,6 @@ interface Option {
 
 type BranchOfficeType = 'MEXICO' | 'MONTERREY' | 'VERACRUZ' | 'MEXICALI' | 'QUERETARO' | 'CANCUN' | 'CABOS'
 
-
-
-
 export class InvoicePaginationDto {
 
   public readonly page: number

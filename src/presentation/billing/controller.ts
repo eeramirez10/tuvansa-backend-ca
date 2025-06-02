@@ -67,6 +67,7 @@ export class BillingController {
         res
           .status(200)
           .header('Content-Type', `application/${fileDto!.type}`)
+          .header("Content-Disposition", `attachment; filename="${fileDto!.filename}"`)
           .send(resp);
       })
       .catch(error => {
