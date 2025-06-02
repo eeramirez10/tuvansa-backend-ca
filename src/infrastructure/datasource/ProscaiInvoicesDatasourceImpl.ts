@@ -36,7 +36,7 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
       'f.DESFACT = ?',
       'f.DSTATUSCFD = ?',
       'f.DMULTICIA = ?',
-      "(MID(DNUM,1,1)= 'F' OR MID(DNUM,1,1)= 'D')"
+      "(MID(DNUM,1,1)= 'F' OR MID(DNUM,1,1)= 'D' OR MID(DNUM,1,1)= 'A')"
     ];
 
     let likeClauses = []

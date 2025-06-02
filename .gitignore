@@ -2,4 +2,4 @@
 .env
 node_modules
 
-# Keep environment variables out of version control
+# Keep environment variables out of version controlgit commit -m "Dejar de trackear la carpeta src/web según .gitignore"
