@@ -63,7 +63,6 @@ export class BillingController {
     new GetInvoicePdfFileUseCase(this.documentService)
       .execute(fileDto!.filename)
       .then(resp => {
-
         res
           .status(200)
           .header('Content-Type', `application/${fileDto!.type}`)

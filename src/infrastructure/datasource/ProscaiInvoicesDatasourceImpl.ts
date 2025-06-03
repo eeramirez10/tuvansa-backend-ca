@@ -33,10 +33,10 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
     const offset = search ? 0 : (page - 1) * pageSize;
 
     let whereClauses = [
-      'f.DESFACT = ?',
+      '(f.DESFACT = ? OR f.DESFACT = 8)',
       'f.DSTATUSCFD = ?',
       'f.DMULTICIA = ?',
-      "(MID(DNUM,1,1)= 'F' OR MID(DNUM,1,1)= 'D' OR MID(DNUM,1,1)= 'A'  OR MID(DNUM,1,1)= 'I')"
+      "( MID(DNUM,1,1)= 'F' OR MID(DNUM,1,1)= 'D' OR MID(DNUM,1,1)= 'A'  OR MID(DNUM,1,1)= 'I' )"
     ];
 
     let likeClauses = []
