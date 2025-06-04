@@ -49,6 +49,11 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
       values = [1, 3]
     }
 
+    if (branchOffice === 'MEXICO') {
+      whereClauses[2] = '(f.DMULTICIA = 1 OR f.DMULTICIA = 6)'
+      values = [1, 3]
+    }
+
     if (startDateValueDefault) {
       whereClauses.push('f.DFECHA >= ?');
       values.push(startDateValueDefault);
