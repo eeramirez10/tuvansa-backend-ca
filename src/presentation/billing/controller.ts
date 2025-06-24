@@ -57,11 +57,13 @@ export class BillingController {
       return
     }
 
+    console.log(fileDto)
 
+    const invoicesPath = `facturas-proscai/${fileDto?.filename}`
 
 
     new GetInvoicePdfFileUseCase(this.documentService)
-      .execute(fileDto!.filename)
+      .execute(invoicesPath)
       .then(resp => {
         res
           .status(200)
