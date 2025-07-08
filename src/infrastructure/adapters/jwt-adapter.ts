@@ -7,7 +7,7 @@ const SEED = Envs.getEnvs().JWT_SEED
 
 export class JwtAdapter {
 
-  static async generateToken(payload: object, duration: string = '2h'): Promise<string | null> {
+  static async generateToken(payload: object, duration: string = '5h'): Promise<string | null> {
 
     return new Promise((resolve) => {
 

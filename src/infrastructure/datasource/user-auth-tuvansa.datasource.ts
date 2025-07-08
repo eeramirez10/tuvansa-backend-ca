@@ -5,8 +5,11 @@ import { LoginDto } from "../../domain/dto/auth/login-user.dto";
 import { UserEntity } from "../../domain/entities/user";
 import { CustomError } from "../../domain/errors/custom-error";
 
-import { Branch, PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { BcryptAdapter } from "../adapters/bcrypt-adapter";
+import { PaginationResult } from "../../domain/entities/pagination-result";
+import { AuthPaginationDto } from "../../domain/dto/auth/auth-pagination.dto";
+
 
 
 const prismaClient = new PrismaClient();
@@ -21,6 +24,88 @@ export class UserAuthTuvansaDatasource implements AuthDatasource<UserEntity | nu
     private readonly hashPassword: HashFunction = BcryptAdapter.hash,
     private readonly comparePassword: CompareFunction = BcryptAdapter.compare
   ) {
+
+  }
+
+
+
+  async getOne(id: string): Promise<UserEntity | null> {
+    return await prismaClient.user.findUnique({ where: { id } })
+  }
+
+
+  async getAll(authPaginationDto: AuthPaginationDto): Promise<PaginationResult<UserEntity>> {
+
+    const { page, pageSize } = authPaginationDto
+
+    const skip = (authPaginationDto.page - 1) * authPaginationDto.pageSize;
+
+    const search = authPaginationDto.search?.toString().trim() || undefined;
+
+    
+
+    const usersPromise = prismaClient.user.findMany({
+      take: authPaginationDto.pageSize,
+      skip,
+      where: search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { username: { contains: search, mode: 'insensitive' } },
+          { lastname: { contains: search, mode: 'insensitive' } },
+        ]
+      } : {}
+
+
+    })
+
+    const countUsersPromise = prismaClient.user.count({
+      where: search ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { username: { contains: search, mode: 'insensitive' } },
+          { lastname: { contains: search, mode: 'insensitive' } },
+        ]
+      } : {}
+    })
+
+    const [items, total] = await Promise.all([usersPromise, countUsersPromise])
+
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages,
+    }
+  }
+
+
+  async updateUser(updateUserDto: Record<string, any>): Promise<UserEntity> {
+
+    const { id, ...data } = updateUserDto
+
+
+    if (data.password) {
+      const hashedPassword = this.hashPassword(data.password);
+      data.password = hashedPassword
+    }
+
+    const user = await prismaClient.user.findUnique({ where: { id } })
+
+    console.log({ user })
+
+    if (!user) throw CustomError.BadRequest('User not exist')
+
+    const updateUser = await prismaClient.user.update({
+      where: { id },
+      data: data
+    })
+
+    return updateUser
 
   }
 
@@ -55,8 +140,6 @@ export class UserAuthTuvansaDatasource implements AuthDatasource<UserEntity | nu
     }
 
     const hashedPassword = this.hashPassword(password)
-
-
 
     const newUser = await prismaClient.user.create({
       data: {

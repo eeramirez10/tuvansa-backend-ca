@@ -6,6 +6,8 @@ import { CreateClientDto } from "../../domain/dto/client/create-client.dto";
 import { ClientEntity } from "../../domain/entities/client.entity";
 import { BcryptAdapter } from "../adapters/bcrypt-adapter";
 import { CustomError } from "../../domain/errors/custom-error";
+import { PaginationResult } from "../../domain/entities/pagination-result";
+import { AuthPaginationDto } from "../../domain/dto/auth/auth-pagination.dto";
 
 
 const prismaClient = new PrismaClient()
@@ -20,6 +22,18 @@ export class ClientAuthDatasource implements AuthDatasource<ClientEntity, Create
     private readonly comparePassword: CompareFunction = BcryptAdapter.compare
   ) {
 
+  }
+  getAll(authPaginationDto: AuthPaginationDto): Promise<PaginationResult<ClientEntity>> {
+    throw new Error("Method not implemented.");
+  }
+  getOne(id: string): Promise<ClientEntity | null> {
+    throw new Error("Method not implemented.");
+  }
+  getALl(): Promise<PaginationResult<ClientEntity>> {
+    throw new Error("Method not implemented.");
+  }
+  updateUser(updateUserDto: Record<string, any>): Promise<ClientEntity> {
+    throw new Error("Method not implemented.");
   }
 
   async login(loginDto: LoginDto): Promise<ClientEntity> {

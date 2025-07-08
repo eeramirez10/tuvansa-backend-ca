@@ -7,9 +7,10 @@ interface Option {
   rfc: string
   search?: string
   branchOffice: BranchOfficeType
+  accesibleBranches?: string[]
 }
 
-type BranchOfficeType = 'MEXICO' | 'MONTERREY' | 'VERACRUZ' | 'MEXICALI' | 'QUERETARO' | 'CANCUN' | 'CABOS'
+export type BranchOfficeType = 'MEXICO' | 'MONTERREY' | 'VERACRUZ' | 'MEXICALI' | 'QUERETARO' | 'CANCUN' | 'CABOS'
 
 export class InvoicePaginationDto {
 
@@ -20,6 +21,7 @@ export class InvoicePaginationDto {
   public readonly rfc?: string
   public readonly search?: string
   public readonly branchOffice: BranchOfficeType
+  public readonly accesibleBranches?: string[]
 
   constructor(options: Option) {
     this.page = options.page
@@ -29,6 +31,7 @@ export class InvoicePaginationDto {
     this.rfc = options.rfc
     this.search = options.search
     this.branchOffice = options.branchOffice
+    this.accesibleBranches = options.accesibleBranches
   }
 
   static execute(values: { [key: string]: any; }): [string?, InvoicePaginationDto?] {
@@ -41,14 +44,15 @@ export class InvoicePaginationDto {
       endDate,
       rfc,
       search,
-      branchOffice
+      branchOffice,
+      accesibleBranches
     } = values
 
 
     if (page < 0) return ['the page cannot be less than zero ']
     if (pageSize < 0 ) return ['Page size cannot be less than zero']
 
-    return [, new InvoicePaginationDto({ page: Number(page), pageSize: Number(pageSize), startDate, endDate, rfc, search, branchOffice })]
+    return [, new InvoicePaginationDto({ page: Number(page), pageSize: Number(pageSize), startDate, endDate, rfc, search, branchOffice, accesibleBranches })]
 
   }
 }

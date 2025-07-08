@@ -6,6 +6,7 @@ import { DocumentService } from '../../domain/services/document-service';
 import { FileDto } from "../../domain/dto/file.dto";
 import { GetInvoicePdfFileUseCase } from "../../use-cases/billing/get-invoice-pdf-file.use-case.dto";
 import { CustomError } from "../../domain/errors/custom-error";
+import { ReqUser } from "../middlewares/auth.middleware";
 
 
 type FileType = 'pdf' | 'xml'
@@ -20,7 +21,11 @@ export class BillingController {
 
   getInvoices = (req: Request, res: Response) => {
 
-    const [error, invoicePaginationDto] = InvoicePaginationDto.execute({ ...req.query })
+     const user = (req as ReqUser).user
+
+     console.log(user)
+
+    const [error, invoicePaginationDto] = InvoicePaginationDto.execute({ ...req.query, ...user })
 
     if (error) {
 
@@ -59,7 +64,7 @@ export class BillingController {
 
     console.log(fileDto)
 
-    const invoicesPath = `facturas-proscai/${fileDto?.filename}`
+    const invoicesPath = `/facturas-proscai/${fileDto?.filename}`
 
 
     new GetInvoicePdfFileUseCase(this.documentService)

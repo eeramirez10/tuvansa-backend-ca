@@ -4,6 +4,7 @@ import { ProscaiInvoicesDatasourceImpl } from "../../infrastructure/datasource/P
 import { InvoiceRepositoryImpl } from "../../infrastructure/repositories/invoice-repositoryImpl";
 import { TuvansaDocumentService } from "../../infrastructure/services/tuvansa-document.service";
 import { BasicFtpStorageAdapter } from "../../infrastructure/adapters/basic-ftp-storage.adapter";
+import { AuthMiddleware } from "../middlewares/auth.middleware";
 
 export class BillingRoutes {
 
@@ -21,9 +22,10 @@ export class BillingRoutes {
     const controller = new BillingController(repository, new TuvansaDocumentService(ftpAdapter))
 
 
-    router.get('/invoices', controller.getInvoices)
+    router.get('/invoices', AuthMiddleware.validateJWT, controller.getInvoices)
 
     router.post('/invoices/file', controller.getInvoiceFile)
+
 
     return router
 

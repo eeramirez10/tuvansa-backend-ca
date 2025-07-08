@@ -1,6 +1,6 @@
 import { RowDataPacket } from "mysql2";
 import { InvoicesDatasource } from "../../domain/datasource/invoices-datasource";
-import { InvoicePaginationDto } from "../../domain/dto/invoice-pagination.dto";
+import {  InvoicePaginationDto } from "../../domain/dto/invoice-pagination.dto";
 import { InvoiceEntity } from "../../domain/entities/invoice-entity";
 import { PaginationResult } from "../../domain/entities/pagination-result";
 import { pool } from "../database/proscai.mysql-connection";
@@ -10,7 +10,7 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
 
 
   async getInvoices(invoicePaginationDto: InvoicePaginationDto): Promise<PaginationResult<InvoiceEntity>> {
-    const { page, pageSize, startDate, endDate, rfc, search, branchOffice } = invoicePaginationDto
+    const { page, pageSize, startDate, endDate, rfc, search, branchOffice, accesibleBranches } = invoicePaginationDto
 
 
     const branchOfficeValues = {
@@ -21,38 +21,56 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
       'QUERETARO': 5,
       'CANCUN': 6,
       'CABOS': 7,
-    }
+    } as any
+
+
+
+
+
 
     const startDateValueDefault = startDate ?? '2025-01-01'
 
     const endDateValueDefault = endDate ?? '2025-12-31'
 
-
-    const selectedBranchOffice = branchOfficeValues[branchOffice] ?? branchOfficeValues['MEXICO']
+    const selectedBranchOffice = branchOfficeValues[branchOffice]
 
     const offset = search ? 0 : (page - 1) * pageSize;
+
+    let branchsOffice = `f.DMULTICIA=${selectedBranchOffice}`
+
+    if (accesibleBranches && accesibleBranches?.length > 0) {
+      const branchsOfficeQuery = accesibleBranches.map((ab) => `f.DMULTICIA=${branchOfficeValues[ab.toUpperCase()]}`)
+      let originalBranchOffice = `f.DMULTICIA=${selectedBranchOffice}`
+      branchsOffice = `(${originalBranchOffice} OR  ${branchsOfficeQuery.join(' OR ')})`
+    }
 
     let whereClauses = [
       '(f.DESFACT = ? OR f.DESFACT = 8)',
       'f.DSTATUSCFD = ?',
-      'f.DMULTICIA = ?',
       "( MID(DNUM,1,1)= 'F' OR MID(DNUM,1,1)= 'D' OR MID(DNUM,1,1)= 'A'  OR MID(DNUM,1,1)= 'I' )"
     ];
 
     let likeClauses = []
 
-    let values: any[] = [1, 3, selectedBranchOffice];
+    let values: any[] = [1, 3];
 
+    if (branchsOffice) {
 
-    if (branchOffice === 'CANCUN') {
-      whereClauses[2] = '(f.DMULTICIA = 6 OR f.DMULTICIA = 7)'
-      values = [1, 3]
+      whereClauses.push(branchsOffice)
     }
 
-    if (branchOffice === 'MEXICO') {
-      whereClauses[2] = '(f.DMULTICIA = 1 OR f.DMULTICIA = 6)'
-      values = [1, 3]
-    }
+
+
+
+    // if (branchOffice === 'CANCUN') {
+    //   whereClauses[2] = '(f.DMULTICIA = 6 OR f.DMULTICIA = 7)'
+    //   values = [1, 3]
+    // }
+
+    // if (branchOffice === 'MEXICO') {
+    //   whereClauses[2] = '(f.DMULTICIA = 1 OR f.DMULTICIA = 6)'
+    //   values = [1, 3]
+    // }
 
     if (startDateValueDefault) {
       whereClauses.push('f.DFECHA >= ?');
@@ -85,8 +103,8 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
       LEFT JOIN FCLI c ON c.CLISEQ = f.CLISEQ
       ${whereSQL}
     `;
-    const [countRows] = await pool.query<RowDataPacket[]>(countSQL, values);
-    const total = Number(countRows[0]?.total ?? 0);
+    // const [countRows] = await pool.query<RowDataPacket[]>(countSQL, values);
+    // const total = Number(countRows[0]?.total ?? 0);
 
     // 3) Paginación
     const pageSQL = `
@@ -112,19 +130,17 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
       ORDER BY f.DFECHA DESC
       LIMIT ? OFFSET ?
     `;
+
     const [rows] = await pool.query<RowDataPacket[]>(
       pageSQL,
       [...values, pageSize, offset]
     );
 
-
     const items = rows.map((v) => InvoiceMapper.jsonToEntity(v));
 
+    const totalPages = Math.ceil(100 / pageSize);
 
-    const totalPages = Math.ceil(total / pageSize);
-
-
-    return { items, total, page, pageSize, totalPages };
+    return { items, total: 100, page, pageSize, totalPages };
 
   }
 

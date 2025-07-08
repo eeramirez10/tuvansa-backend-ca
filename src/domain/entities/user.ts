@@ -1,4 +1,5 @@
 import { $Enums, User } from "@prisma/client"
+import { JsonValue } from "@prisma/client/runtime/library";
 
 
 interface Option {
@@ -14,6 +15,7 @@ interface Option {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  accesibleBranches: JsonValue
 
 }
 
@@ -29,6 +31,7 @@ export class UserEntity implements User {
   readonly isActive: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly accesibleBranches: JsonValue;
 
 
   constructor(options: Option) {
@@ -42,8 +45,10 @@ export class UserEntity implements User {
     this.isActive = options.isActive
     this.createdAt = options.createdAt
     this.updatedAt = options.updatedAt
-    this. lastname = options.lastname
+    this.lastname = options.lastname
+    this.accesibleBranches = options.accesibleBranches
   }
+
 
 
 

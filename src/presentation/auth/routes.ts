@@ -20,6 +20,9 @@ export class AuthRoutes {
     app.post('/user', controller.loginUser)
     app.post('/user/register', controller.createUser)
     app.get('/user/renew', AuthMiddleware.validateJWT, controller.renewToken)
+    app.patch('/user/:id', AuthMiddleware.validateJWT, controller.updateUser)
+    app.get('/user/:id', AuthMiddleware.validateJWT, controller.getUser)
+    app.get('/user', AuthMiddleware.validateJWT, controller.getUsers)
 
 
     return app

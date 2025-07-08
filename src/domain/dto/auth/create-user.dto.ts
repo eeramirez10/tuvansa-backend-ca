@@ -3,7 +3,7 @@ import { CreateAuthDto, Role } from './create-auth.dto';
 import { Validators } from '../../../config/utils/validators';
 import { Branch, $Enums } from '@prisma/client';
 
-const BRANCHS = [
+export const BRANCHS = [
   'MEXICO',
   'MONTERREY',
   'VERACRUZ',
@@ -13,7 +13,7 @@ const BRANCHS = [
 ]
 
 
-interface Options {
+export interface OptionsCreateUserDto {
   name: string
   lastname: string
   email: string
@@ -22,6 +22,7 @@ interface Options {
   branch: Branch;
   username: string
   role?: $Enums.Role
+  accesibleBranches?: Array<string>
 }
 
 
@@ -35,10 +36,11 @@ export class CreateUserDto extends CreateAuthDto {
   public readonly isActive: boolean
   public readonly branch: Branch
   public readonly role?: $Enums.Role
+  public readonly accesibleBranches?: Array<string>
 
 
 
-  constructor(options: Options) {
+  constructor(options: OptionsCreateUserDto) {
     super(options);
     this.name = options.name
     this.lastname = options.lastname
@@ -48,9 +50,10 @@ export class CreateUserDto extends CreateAuthDto {
     this.username = options.username
     this.branch = options.branch
     this.role = options.role
+    this.accesibleBranches = options.accesibleBranches
   }
 
-  static execute(options: Options): [string?, CreateUserDto?] {
+  static execute(options: OptionsCreateUserDto): [string?, CreateUserDto?] {
 
     const {
       name,
@@ -60,7 +63,8 @@ export class CreateUserDto extends CreateAuthDto {
       role,
       isActive = true,
       branch,
-      username
+      username,
+      accesibleBranches
     } = options
 
 
@@ -73,6 +77,10 @@ export class CreateUserDto extends CreateAuthDto {
     if (!Validators.email.test(email)) return ['Email is not valid'];
     if (!password) return ['Missing password'];
     if (password.length < 6) return ['Password too short'];
+    if(accesibleBranches){
+      if(!Array.isArray(accesibleBranches)) return ['Branches must be string array']
+      if(!accesibleBranches.every(b => BRANCHS.includes(b))) return [`Branchs  not allowed`]
+    }
 
 
     return [
@@ -85,7 +93,8 @@ export class CreateUserDto extends CreateAuthDto {
         role,
         isActive,
         branch: branch.toUpperCase() as Branch,
-        username
+        username,
+        accesibleBranches
       })]
   }
 }
