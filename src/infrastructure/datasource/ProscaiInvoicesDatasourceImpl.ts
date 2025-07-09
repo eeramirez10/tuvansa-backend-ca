@@ -28,7 +28,7 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
 
 
 
-    const startDateValueDefault = startDate ?? '2025-01-01'
+    const startDateValueDefault = startDate ?? '2024-01-01'
 
     const endDateValueDefault = endDate ?? '2025-12-31'
 
@@ -47,7 +47,7 @@ export class ProscaiInvoicesDatasourceImpl extends InvoicesDatasource {
     let whereClauses = [
       '(f.DESFACT = ? OR f.DESFACT = 8)',
       'f.DSTATUSCFD = ?',
-      "( MID(DNUM,1,1)= 'F' OR MID(DNUM,1,1)= 'D' OR MID(DNUM,1,1)= 'A'  OR MID(DNUM,1,1)= 'I' )"
+      "( MID(DNUM,1,1)= 'F' OR MID(DNUM,1,1)= 'D' OR MID(DNUM,1,1)= 'A'  OR MID(DNUM,1,1)= 'I'   )"
     ];
 
     let likeClauses = []
