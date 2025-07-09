@@ -4,9 +4,12 @@
   "main": "index.js",
   "scripts": {
     "pm2": "npm run build && pm2 start dist/app.js",
-    "dev": "NODE_ENV=deveplopment  tsnd --respawn --clear src/app.ts",
+    "dev": "NODE_ENV=development tsnd --respawn --clear src/app.ts",
     "build": "rm -rf ./dist && tsc --noEmitOnError false",
     "start": "NODE_ENV=production npm run build && node dist/app.js"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "keywords": [],
   "author": "",
