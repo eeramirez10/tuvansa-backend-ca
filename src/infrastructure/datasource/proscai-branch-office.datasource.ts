@@ -49,7 +49,7 @@ export class ProscaiBranchOfficeDatasource implements BranchOfficeDatasource {
 
     const [rows] = await pool.execute<any[]>(sql, params);
 
-    console.log(rows)
+   
     return rows.map((r) => ({
 
       ...r,

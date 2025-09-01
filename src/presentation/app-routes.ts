@@ -4,6 +4,8 @@ import { AuthRoutes } from "./auth/routes";
 import { SalesRoutes } from "./sales/routes";
 import { BranchOfficeRoutes } from "./branch-office/routes";
 import { WarehouseRoutes } from "./warehouse/routes";
+import { AccountStetementsRoutes } from "./account-statements/routes";
+import { CustomerRoutes } from "./customers/routes";
 
 
 export class AppRoutes {
@@ -19,6 +21,8 @@ export class AppRoutes {
     router.use('/api/sales', SalesRoutes.routes())
     router.use('/api/branch-office', BranchOfficeRoutes.routes())
     router.use('/api/warehouse', WarehouseRoutes.routes())
+    router.use('/api/account-statements', AccountStetementsRoutes.routes())
+    router.use('/api/customers', CustomerRoutes.routes())
 
 
     return router;

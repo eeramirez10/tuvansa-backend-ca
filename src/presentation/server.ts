@@ -76,7 +76,7 @@ export class Server {
     } = options;
 
     const existPathCert = existsSync(path)
-    console.log({ existPathCert })
+    
 
     if (!existPathCert) return false
 

@@ -96,7 +96,7 @@ export class UserAuthTuvansaDatasource implements AuthDatasource<UserEntity | nu
 
     const user = await prismaClient.user.findUnique({ where: { id } })
 
-    console.log({ user })
+   
 
     if (!user) throw CustomError.BadRequest('User not exist')
 
