@@ -1,11 +1,6 @@
-
-
-
-
 import { Readable } from 'node:stream';
 import nodemailer from 'nodemailer';
 import { Envs } from '../../config/envs';
-
 
 
 export interface SendMailOptions {
