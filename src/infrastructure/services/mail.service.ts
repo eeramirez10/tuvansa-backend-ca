@@ -20,11 +20,10 @@ interface Attachment {
 export class EmailService {
 
   private transporter = nodemailer.createTransport({
-    
+    service: Envs.getEnvs().MAIL_SERVICE,
     host: Envs.getEnvs().EMAIL_HOST,
     port: 587,
     secure: false,
-    
     auth: {
       user: Envs.getEnvs().EMAIL_ACCOUNT,
       pass: Envs.getEnvs().EMAIL_PASSWORD,
