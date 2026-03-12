@@ -14,10 +14,10 @@ export class ProscaiBranchOfficeDatasource implements BranchOfficeDatasource {
       '05': 'QUERETARO',
       '06': 'CANCUN',
       '07': 'CABOS',
-      '13':'Resguardo Mex - Ver',
-      '22':'Resguardo Mty',
-      '97':'Transito VERACRUZ',
-      '99':'Transito Mexico'
+      '13': 'Resguardo Mex - Ver',
+      '22': 'Resguardo Mty',
+      '97': 'Transito VERACRUZ',
+      '99': 'Transito Mexico'
     } as any
 
 
@@ -49,7 +49,8 @@ export class ProscaiBranchOfficeDatasource implements BranchOfficeDatasource {
 
     const [rows] = await pool.execute<any[]>(sql, params);
 
-   
+    console.log({ rows })
+
     return rows.map((r) => ({
 
       ...r,

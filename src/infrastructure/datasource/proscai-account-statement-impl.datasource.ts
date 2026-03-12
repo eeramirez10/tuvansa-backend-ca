@@ -24,9 +24,6 @@ export class ProscaiAccountStatementDatasourceImpl implements AccountStatementDa
 
 
 
-
-    console.log({ accountStatement: dto })
-
     const { rows, total } = await this.querySqlAccountStatements(dto);
 
     const items = rows.map(row => AccountStatementMapper.jsonToEntity({ ...row, branchOffice }));
