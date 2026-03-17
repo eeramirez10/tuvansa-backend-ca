@@ -8,6 +8,7 @@ import { AccountStetementsRoutes } from "./account-statements/routes";
 import { CustomerRoutes } from "./customers/routes";
 import { ProductsRoutes } from "./products/routes";
 import { ErpCustomersRoutes } from "./erp-customers/routes";
+import { ErpUsersRoutes } from "./erp-users/routes";
 
 
 export class AppRoutes {
@@ -27,7 +28,7 @@ export class AppRoutes {
     router.use('/api/customers', CustomerRoutes.routes())
     router.use('/api/erp/products', ProductsRoutes.routes())
     router.use('/api/erp/customers', ErpCustomersRoutes.routes())
-
+    router.use("/api/erp-users", ErpUsersRoutes.routes());
 
 
     return router;
