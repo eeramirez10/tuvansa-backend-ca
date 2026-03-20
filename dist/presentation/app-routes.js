@@ -11,6 +11,7 @@ const routes_6 = require("./account-statements/routes");
 const routes_7 = require("./customers/routes");
 const routes_8 = require("./products/routes");
 const routes_9 = require("./erp-customers/routes");
+const routes_10 = require("./erp-users/routes");
 class AppRoutes {
     static routes() {
         const router = (0, express_1.Router)();
@@ -23,6 +24,7 @@ class AppRoutes {
         router.use('/api/customers', routes_7.CustomerRoutes.routes());
         router.use('/api/erp/products', routes_8.ProductsRoutes.routes());
         router.use('/api/erp/customers', routes_9.ErpCustomersRoutes.routes());
+        router.use("/api/erp-users", routes_10.ErpUsersRoutes.routes());
         return router;
     }
 }

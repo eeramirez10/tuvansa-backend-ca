@@ -15,7 +15,7 @@ const erp_customer_mapper_1 = require("../mappers/erp-customer.mapper");
 class ProscaiErpCustomersDatasource {
     searchByTerm(request) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { q, branchCode, limit } = request;
+            const { q, limit } = request;
             const like = `%${q.toUpperCase()}%`;
             const sql = `
       SELECT
@@ -139,11 +139,10 @@ class ProscaiErpCustomersDatasource {
           OR UPPER(COALESCE(CT.email, '')) LIKE ?
         )
       ) t
-      WHERE t.branchCode = ?
       ORDER BY t.code
       LIMIT ?
     `;
-            const [rows] = yield proscai_mysql_connection_1.pool.query(sql, [like, like, like, like, like, like, like, like, like, branchCode, limit]);
+            const [rows] = yield proscai_mysql_connection_1.pool.query(sql, [like, like, like, like, like, like, like, like, like, limit]);
             return rows
                 .map((row) => erp_customer_mapper_1.ErpCustomerMapper.toSearchResponseDto(row))
                 .filter((row) => Boolean(row.externalId && row.code && row.displayName));

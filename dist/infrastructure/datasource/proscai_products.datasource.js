@@ -43,12 +43,17 @@ class ProscaiProductsRepository {
     LEFT JOIN FINV ON FINV.ISEQ = FALM.ISEQ
     LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
     LEFT JOIN FFAM AS FAMB ON FAMB.FAMTNUM = FINV.IFAMB
-    WHERE IEAN LIKE ? AND
+    WHERE (
+      IEAN LIKE ? OR
+      ICOD LIKE ? OR
+      I2DESCR LIKE ?
+    ) AND
     ITIPO = 1 AND ALMNUM = ?
     limit 10
     
     `;
-            const [rows] = yield proscai_mysql_connection_1.pool.query(productsSql, [`%${ean}%`, branchId]);
+            const likeTerm = `%${ean}%`;
+            const [rows] = yield proscai_mysql_connection_1.pool.query(productsSql, [likeTerm, likeTerm, likeTerm, branchId]);
             return rows.map(row => product_mapper_1.ProductMapper.toGetByEanResponseDto({
                 id: row.id,
                 code: row.CODIGO,
