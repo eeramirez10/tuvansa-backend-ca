@@ -9,7 +9,7 @@ export class ProscaiErpCustomersDatasource implements ErpCustomersDatasource {
   async searchByTerm(
     request: SearchErpCustomersRequestDto
   ): Promise<SearchErpCustomersResponseDto[]> {
-    const { q, branchCode, limit } = request
+    const { q, limit } = request
     const like = `%${q.toUpperCase()}%`
 
     const sql = `
@@ -134,14 +134,13 @@ export class ProscaiErpCustomersDatasource implements ErpCustomersDatasource {
           OR UPPER(COALESCE(CT.email, '')) LIKE ?
         )
       ) t
-      WHERE t.branchCode = ?
       ORDER BY t.code
       LIMIT ?
     `
 
     const [rows] = await pool.query<RowDataPacket[]>(
       sql,
-      [like, like, like, like, like, like, like, like, like, branchCode, limit]
+      [like, like, like, like, like, like, like, like, like, limit]
     )
 
     return rows
