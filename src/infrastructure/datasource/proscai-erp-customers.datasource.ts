@@ -1,5 +1,7 @@
 import { RowDataPacket } from "mysql2";
 import { ErpCustomersDatasource } from "../../domain/datasource/erp-customers.datasource";
+import { GetMonthlySalesSummaryRequestDto } from "../../domain/dto/erp-customers/get-monthly-sales-summary-request.dto";
+import { GetMonthlySalesSummaryResponseDto } from "../../domain/dto/erp-customers/get-monthly-sales-summary-response.dto";
 import { SearchErpCustomersRequestDto } from "../../domain/dto/erp-customers/search-erp-customers-request.dto";
 import { SearchErpCustomersResponseDto } from "../../domain/dto/erp-customers/search-erp-customers-response.dto";
 import { pool } from "../database/proscai.mysql-connection";
@@ -146,5 +148,65 @@ export class ProscaiErpCustomersDatasource implements ErpCustomersDatasource {
     return rows
       .map((row) => ErpCustomerMapper.toSearchResponseDto(row as Record<string, unknown>))
       .filter((row) => Boolean(row.externalId && row.code && row.displayName))
+  }
+
+  async getMonthlySalesSummary(
+    request: GetMonthlySalesSummaryRequestDto
+  ): Promise<GetMonthlySalesSummaryResponseDto[]> {
+    const { taxId, customerName, startDate, endDate } = request
+
+    const whereClauses: string[] = [
+      "ITIPO <> 4",
+      "DFECHA >= ?",
+      "DFECHA <= ?",
+      "DCANCELADA = 0",
+      "DESFACT = 1",
+      "DSTATUSCFD = 3",
+    ]
+    const values: Array<string | number> = [startDate, endDate]
+
+    if (taxId) {
+      whereClauses.push("UPPER(COALESCE(FCLI.CLIRFC, '')) = ?")
+      values.push(taxId.toUpperCase())
+    }
+
+    if (customerName) {
+      whereClauses.push("UPPER(COALESCE(FCLI.CLINOM, '')) LIKE ?")
+      values.push(`%${customerName.toUpperCase()}%`)
+    }
+
+    const sql = `
+      SELECT
+        CAST(DATE_FORMAT(DFECHA, '%Y') AS UNSIGNED) AS year,
+        CAST(DATE_FORMAT(DFECHA, '%m') AS UNSIGNED) AS month,
+        TRIM(FCLI.CLICOD) AS customerCode,
+        TRIM(FCLI.CLINOM) AS customerName,
+        TRIM(FCLI.CLIRFC) AS taxId,
+        ROUND(SUM(AICANTF * AIPRECIO), 2) AS subtotalAmount,
+        ROUND(SUM(AICANTF * (AIPRECIO * (1 + (DPORCIVA / 100)))), 2) AS totalAmount
+      FROM FAXINV
+      LEFT JOIN FDOC ON FDOC.DSEQ = FAXINV.DSEQ
+      LEFT JOIN FINV ON FINV.ISEQ = FAXINV.ISEQ
+      LEFT JOIN FCLI ON FCLI.CLISEQ = FDOC.CLISEQ
+      WHERE ${whereClauses.join(" AND ")}
+      GROUP BY
+        DATE_FORMAT(DFECHA, '%Y'),
+        DATE_FORMAT(DFECHA, '%m'),
+        FCLI.CLICOD,
+        FCLI.CLINOM,
+        FCLI.CLIRFC
+      ORDER BY
+        DATE_FORMAT(DFECHA, '%Y'),
+        DATE_FORMAT(DFECHA, '%m'),
+        FCLI.CLICOD
+    `
+
+    const [rows] = await pool.query<RowDataPacket[]>(sql, values)
+
+    return rows
+      .map((row) =>
+        ErpCustomerMapper.toMonthlySalesSummaryResponseDto(row as Record<string, unknown>)
+      )
+      .filter((row) => Boolean(row.customerCode && row.customerName))
   }
 }

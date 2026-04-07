@@ -1,3 +1,4 @@
+import { GetMonthlySalesSummaryResponseDto } from "../../domain/dto/erp-customers/get-monthly-sales-summary-response.dto";
 import { SearchErpCustomersResponseDto } from "../../domain/dto/erp-customers/search-erp-customers-response.dto";
 
 const toText = (value: unknown): string => {
@@ -8,6 +9,20 @@ const toText = (value: unknown): string => {
 }
 
 const normalizeDigits = (value: string): string => value.replace(/\D+/g, '')
+
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const toMoney = (value: unknown): number => {
+  const numeric = toNumber(value)
+  return Math.round((numeric + Number.EPSILON) * 100) / 100
+}
 
 const normalizeMxPhone = (value: string): string => {
   if (!value) return ''
@@ -70,6 +85,20 @@ export class ErpCustomerMapper {
       billingPostalCode: toText(json.billingPostalCode),
       billingCountry: toText(json.billingCountry) || 'MEXICO',
       lastSyncedAt: toText(json.lastSyncedAt),
+    })
+  }
+
+  static toMonthlySalesSummaryResponseDto(
+    json: Record<string, unknown>
+  ): GetMonthlySalesSummaryResponseDto {
+    return new GetMonthlySalesSummaryResponseDto({
+      year: toNumber(json.year),
+      month: toNumber(json.month),
+      customerCode: toText(json.customerCode),
+      customerName: toText(json.customerName),
+      taxId: toText(json.taxId).toUpperCase(),
+      subtotalAmount: toMoney(json.subtotalAmount),
+      totalAmount: toMoney(json.totalAmount),
     })
   }
 }

@@ -1,0 +1,19 @@
+@baseUrl = http://localhost:3500/api/erp/customers
+
+### Search ERP customers by name
+GET {{baseUrl}}/search?q=ACERO&limit=10
+
+### Search ERP customers by code
+GET {{baseUrl}}/search?q=23&limit=10
+
+### Search ERP customers by RFC
+GET {{baseUrl}}/search?q=XAXX010101000&limit=10
+
+### Monthly sales summary by taxId (exact) and date range
+GET {{baseUrl}}/monthly-sales-summary?taxId=GUN061103UV0&startDate=2025-01-01&endDate=2025-12-31
+
+### Monthly sales summary by customerName (LIKE) and date range
+GET {{baseUrl}}/monthly-sales-summary?customerName=GUNDERSON&startDate=2025-01-01&endDate=2025-12-31
+
+### Monthly sales summary by taxId + customerName + date range
+GET {{baseUrl}}/monthly-sales-summary?taxId=GUN061103UV0&customerName=GUNDERSON&startDate=2025-01-01&endDate=2025-12-31

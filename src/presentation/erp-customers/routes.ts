@@ -12,6 +12,7 @@ export class ErpCustomersRoutes {
     const controller = new ErpCustomersController(repository)
 
     app.get('/search', controller.search)
+    app.get('/monthly-sales-summary', controller.getMonthlySalesSummary)
 
     return app
   }
