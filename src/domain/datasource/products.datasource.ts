@@ -1,5 +1,5 @@
 import { GetByEanAndBranchRequestDto } from "../dto/products/get-by-ean-and-branch-request.dto";
-import { GetByEanResponseDto } from "../dto/products/get-by-ean-response.dto";
+import { GetByEanResponseDto } from "../dto/products/get-by-ean-response.dto.ts";
 
 export abstract class ProductsDatasource {
 

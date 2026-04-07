@@ -1,3 +1,4 @@
+
 import { GetByEanResponseDto } from "../../domain/dto/products/get-by-ean-response.dto";
 import { Product } from "../../domain/entities/product.entity";
 
