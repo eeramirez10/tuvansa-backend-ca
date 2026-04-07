@@ -8,5 +8,8 @@ class ErpCustomersRepositoryImpl {
     searchByTerm(request) {
         return this.datasource.searchByTerm(request);
     }
+    getMonthlySalesSummary(request) {
+        return this.datasource.getMonthlySalesSummary(request);
+    }
 }
 exports.ErpCustomersRepositoryImpl = ErpCustomersRepositoryImpl;

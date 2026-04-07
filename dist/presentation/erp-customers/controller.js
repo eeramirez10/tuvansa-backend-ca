@@ -10,7 +10,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ErpCustomersController = void 0;
+const get_monthly_sales_summary_request_dto_1 = require("../../domain/dto/erp-customers/get-monthly-sales-summary-request.dto");
 const search_erp_customers_request_dto_1 = require("../../domain/dto/erp-customers/search-erp-customers-request.dto");
+const get_monthly_sales_summary_use_case_1 = require("../../use-cases/erp-customers/get-monthly-sales-summary.use-case");
 const search_erp_customers_use_case_1 = require("../../use-cases/erp-customers/search-erp-customers.use-case");
 class ErpCustomersController {
     constructor(repository) {
@@ -24,6 +26,21 @@ class ErpCustomersController {
             try {
                 const customers = yield new search_erp_customers_use_case_1.SearchErpCustomersUseCase(this.repository).execute(dto);
                 res.json(customers);
+            }
+            catch (err) {
+                console.log(err);
+                res.status(500).json({ error: 'Internal error' });
+            }
+        });
+        this.getMonthlySalesSummary = (req, res) => __awaiter(this, void 0, void 0, function* () {
+            const [error, dto] = get_monthly_sales_summary_request_dto_1.GetMonthlySalesSummaryRequestDto.execute(req.query);
+            if (error) {
+                res.status(400).json({ error });
+                return;
+            }
+            try {
+                const summary = yield new get_monthly_sales_summary_use_case_1.GetMonthlySalesSummaryUseCase(this.repository).execute(dto);
+                res.json(summary);
             }
             catch (err) {
                 console.log(err);

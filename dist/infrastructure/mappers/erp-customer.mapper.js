@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ErpCustomerMapper = void 0;
+const get_monthly_sales_summary_response_dto_1 = require("../../domain/dto/erp-customers/get-monthly-sales-summary-response.dto");
 const search_erp_customers_response_dto_1 = require("../../domain/dto/erp-customers/search-erp-customers-response.dto");
 const toText = (value) => {
     if (typeof value === 'string')
@@ -12,6 +13,19 @@ const toText = (value) => {
     return '';
 };
 const normalizeDigits = (value) => value.replace(/\D+/g, '');
+const toNumber = (value) => {
+    if (typeof value === 'number')
+        return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'string' && value.trim()) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+};
+const toMoney = (value) => {
+    const numeric = toNumber(value);
+    return Math.round((numeric + Number.EPSILON) * 100) / 100;
+};
 const normalizeMxPhone = (value) => {
     if (!value)
         return '';
@@ -70,6 +84,17 @@ class ErpCustomerMapper {
             billingPostalCode: toText(json.billingPostalCode),
             billingCountry: toText(json.billingCountry) || 'MEXICO',
             lastSyncedAt: toText(json.lastSyncedAt),
+        });
+    }
+    static toMonthlySalesSummaryResponseDto(json) {
+        return new get_monthly_sales_summary_response_dto_1.GetMonthlySalesSummaryResponseDto({
+            year: toNumber(json.year),
+            month: toNumber(json.month),
+            customerCode: toText(json.customerCode),
+            customerName: toText(json.customerName),
+            taxId: toText(json.taxId).toUpperCase(),
+            subtotalAmount: toMoney(json.subtotalAmount),
+            totalAmount: toMoney(json.totalAmount),
         });
     }
 }

@@ -148,5 +148,56 @@ class ProscaiErpCustomersDatasource {
                 .filter((row) => Boolean(row.externalId && row.code && row.displayName));
         });
     }
+    getMonthlySalesSummary(request) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { taxId, customerName, startDate, endDate } = request;
+            const whereClauses = [
+                "ITIPO <> 4",
+                "DFECHA >= ?",
+                "DFECHA <= ?",
+                "DCANCELADA = 0",
+                "DESFACT = 1",
+                "DSTATUSCFD = 3",
+            ];
+            const values = [startDate, endDate];
+            if (taxId) {
+                whereClauses.push("UPPER(COALESCE(FCLI.CLIRFC, '')) = ?");
+                values.push(taxId.toUpperCase());
+            }
+            if (customerName) {
+                whereClauses.push("UPPER(COALESCE(FCLI.CLINOM, '')) LIKE ?");
+                values.push(`%${customerName.toUpperCase()}%`);
+            }
+            const sql = `
+      SELECT
+        CAST(DATE_FORMAT(DFECHA, '%Y') AS UNSIGNED) AS year,
+        CAST(DATE_FORMAT(DFECHA, '%m') AS UNSIGNED) AS month,
+        TRIM(FCLI.CLICOD) AS customerCode,
+        TRIM(FCLI.CLINOM) AS customerName,
+        TRIM(FCLI.CLIRFC) AS taxId,
+        ROUND(SUM(AICANTF * AIPRECIO), 2) AS subtotalAmount,
+        ROUND(SUM(AICANTF * (AIPRECIO * (1 + (DPORCIVA / 100)))), 2) AS totalAmount
+      FROM FAXINV
+      LEFT JOIN FDOC ON FDOC.DSEQ = FAXINV.DSEQ
+      LEFT JOIN FINV ON FINV.ISEQ = FAXINV.ISEQ
+      LEFT JOIN FCLI ON FCLI.CLISEQ = FDOC.CLISEQ
+      WHERE ${whereClauses.join(" AND ")}
+      GROUP BY
+        DATE_FORMAT(DFECHA, '%Y'),
+        DATE_FORMAT(DFECHA, '%m'),
+        FCLI.CLICOD,
+        FCLI.CLINOM,
+        FCLI.CLIRFC
+      ORDER BY
+        DATE_FORMAT(DFECHA, '%Y'),
+        DATE_FORMAT(DFECHA, '%m'),
+        FCLI.CLICOD
+    `;
+            const [rows] = yield proscai_mysql_connection_1.pool.query(sql, values);
+            return rows
+                .map((row) => erp_customer_mapper_1.ErpCustomerMapper.toMonthlySalesSummaryResponseDto(row))
+                .filter((row) => Boolean(row.customerCode && row.customerName));
+        });
+    }
 }
 exports.ProscaiErpCustomersDatasource = ProscaiErpCustomersDatasource;

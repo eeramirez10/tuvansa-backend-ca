@@ -14,5 +14,6 @@ ErpCustomersRoutes.routes = () => {
     const repository = new erp_customers_repository_impl_1.ErpCustomersRepositoryImpl(datasource);
     const controller = new controller_1.ErpCustomersController(repository);
     app.get('/search', controller.search);
+    app.get('/monthly-sales-summary', controller.getMonthlySalesSummary);
     return app;
 };
