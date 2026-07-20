@@ -1,12 +1,26 @@
 import { ProductsDatasource } from "../../domain/datasource/products.datasource";
 import { GetByEanAndBranchRequestDto } from "../../domain/dto/products/get-by-ean-and-branch-request.dto";
 import { GetByEanResponseDto } from "../../domain/dto/products/get-by-ean-response.dto";
+import {
+  ProductAvailabilityCurrency,
+  ProductAvailabilityDto,
+} from "../../domain/dto/products/product-availability.dto";
 
 import { pool } from "../database/proscai.mysql-connection";
 import { ProductMapper } from "../mappers/product-mapper";
 
 
 export class ProscaiProductsRepository implements ProductsDatasource {
+
+  private readonly branchNames: Record<string, string> = {
+    "01": "MEXICO",
+    "02": "MONTERREY",
+    "03": "VERACRUZ",
+    "04": "MEXICALI",
+    "05": "QUERETARO",
+    "06": "CANCUN",
+    "07": "LOS CABOS",
+  };
 
 
   async findByEanAndBranch(request: GetByEanAndBranchRequestDto): Promise<GetByEanResponseDto[]> {
@@ -69,6 +83,194 @@ export class ProscaiProductsRepository implements ProductsDatasource {
       warehouseName: row.ALMACEN_NOMBRE,
 
     }))
+  }
+
+  async findAvailabilityByEan(ean: string): Promise<ProductAvailabilityDto | null> {
+    const products = await this.findAvailabilityByEans([ean]);
+    return products[0] ?? null;
+  }
+
+  async findAvailabilityByEans(eans: string[]): Promise<ProductAvailabilityDto[]> {
+    if (eans.length === 0) return [];
+
+    const placeholders = eans.map(() => "?").join(", ");
+    const branchCodes = Object.keys(this.branchNames);
+    const branchPlaceholders = branchCodes.map(() => "?").join(", ");
+    const sql = `
+      SELECT
+        FINV.ISEQ AS productId,
+        FINV.ICOD AS productCode,
+        FINV.IEAN AS ean,
+        COALESCE(FINV2.I2DESCR, '') AS description,
+        COALESCE(FINV.IUM, '') AS unit,
+        CASE WHEN FINV.IMONEDA1 = '1' THEN 'MXN' ELSE 'USD' END AS currency,
+        COALESCE(FINV.ILISTA4, 0) AS averageCost,
+        COALESCE(FINV.ILISTA5, 0) AS lastCost,
+        FINV.IULTCPR AS lastPurchaseDate,
+        FINV.IULTVTA AS lastSaleDate,
+        FALM.ALMNUM AS branchCode,
+        COALESCE(SUM(FALM.ALMCANT), 0) AS stock
+      FROM FINV
+      LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
+      LEFT JOIN FALM
+        ON FALM.ISEQ = FINV.ISEQ
+        AND FALM.ALMNUM IN (${branchPlaceholders})
+      WHERE FINV.IEAN IN (${placeholders})
+        AND FINV.ITIPO = 1
+      GROUP BY
+        FINV.ISEQ,
+        FINV.ICOD,
+        FINV.IEAN,
+        FINV2.I2DESCR,
+        FINV.IUM,
+        FINV.IMONEDA1,
+        FINV.ILISTA4,
+        FINV.ILISTA5,
+        FINV.IULTCPR,
+        FINV.IULTVTA,
+        FALM.ALMNUM
+      ORDER BY
+        FINV.IEAN ASC,
+        CASE WHEN FALM.ALMNUM IS NOT NULL THEN 0 ELSE 1 END ASC,
+        CASE WHEN FINV.ILISTA4 <> 0 OR FINV.ILISTA5 <> 0 THEN 0 ELSE 1 END ASC,
+        GREATEST(FINV.IULTCPR, FINV.IULTVTA) DESC,
+        CASE WHEN LEFT(FINV.ICOD, 2) = '01' THEN 0 ELSE 1 END ASC,
+        FINV.ICOD ASC,
+        FALM.ALMNUM ASC
+    `;
+
+    const [rows] = await pool.query<any[]>(sql, [...branchCodes, ...eans]);
+    return this.mapAvailabilityRows(rows, eans);
+  }
+
+  private mapAvailabilityRows(rows: any[], requestedEans: string[]): ProductAvailabilityDto[] {
+    const products = new Map<string, {
+      canonical: any;
+      sourceProductCodes: Set<string>;
+      branchStock: Map<string, number>;
+      codes: Map<string, { canonical: any; branchStock: Map<string, number> }>;
+    }>();
+
+    for (const row of rows) {
+      const ean = String(row.ean ?? "").trim();
+      if (!ean) continue;
+
+      const current = products.get(ean) ?? {
+        canonical: row,
+        sourceProductCodes: new Set<string>(),
+        branchStock: new Map<string, number>(),
+        codes: new Map<string, { canonical: any; branchStock: Map<string, number> }>(),
+      };
+      const productCode = String(row.productCode ?? "").trim();
+      const branchCode = String(row.branchCode ?? "").trim();
+
+      if (productCode) current.sourceProductCodes.add(productCode);
+      const codeAvailability = productCode
+        ? current.codes.get(productCode) ?? { canonical: row, branchStock: new Map<string, number>() }
+        : null;
+
+      if (this.branchNames[branchCode]) {
+        const stock = this.toNumber(row.stock);
+        current.branchStock.set(branchCode, (current.branchStock.get(branchCode) ?? 0) + stock);
+        if (codeAvailability) {
+          codeAvailability.branchStock.set(
+            branchCode,
+            (codeAvailability.branchStock.get(branchCode) ?? 0) + stock,
+          );
+        }
+      }
+
+      if (productCode && codeAvailability) current.codes.set(productCode, codeAvailability);
+
+      products.set(ean, current);
+    }
+
+    return requestedEans.flatMap((ean) => {
+      const product = products.get(ean);
+      if (!product) return [];
+
+      const branches = this.buildBranches(product.branchStock);
+      const totalStock = this.roundNumber(branches.reduce((total, branch) => total + branch.stock, 0));
+      const sourceProductCodes = Array.from(product.sourceProductCodes).sort();
+      const canonical = product.canonical;
+      const codes = Array.from(product.codes.entries())
+        .map(([icod, code]) => {
+          const codeBranches = this.buildBranches(code.branchStock);
+          const codeTotalStock = this.roundNumber(
+            codeBranches.reduce((total, branch) => total + branch.stock, 0),
+          );
+
+          return {
+            icod,
+            homeBranchCode: this.resolveHomeBranchCode(icod),
+            homeBranchName: this.resolveHomeBranchName(icod),
+            description: String(code.canonical.description ?? ""),
+            unit: String(code.canonical.unit ?? ""),
+            costs: {
+              average: this.roundNumber(this.toNumber(code.canonical.averageCost)),
+              last: this.roundNumber(this.toNumber(code.canonical.lastCost)),
+              currency: this.toCurrency(code.canonical.currency),
+            },
+            totalStock: codeTotalStock,
+            availableInAnyBranch: codeTotalStock > 0,
+            branches: codeBranches,
+          };
+        })
+        .sort((left, right) => left.icod.localeCompare(right.icod));
+
+      return [{
+        ean,
+        productCode: String(canonical.productCode ?? ""),
+        sourceProductCodes,
+        hasMultipleProductCodes: sourceProductCodes.length > 1,
+        description: String(canonical.description ?? ""),
+        unit: String(canonical.unit ?? ""),
+        costs: {
+          average: this.roundNumber(this.toNumber(canonical.averageCost)),
+          last: this.roundNumber(this.toNumber(canonical.lastCost)),
+          currency: this.toCurrency(canonical.currency),
+        },
+        totalStock,
+        availableInAnyBranch: totalStock > 0,
+        branches,
+        codes,
+      }];
+    });
+  }
+
+  private buildBranches(branchStock: Map<string, number>) {
+    return Object.entries(this.branchNames).map(([branchCode, branchName]) => {
+      const stock = this.roundNumber(branchStock.get(branchCode) ?? 0);
+      return {
+        branchCode,
+        branchName,
+        stock,
+        available: stock > 0,
+      };
+    });
+  }
+
+  private resolveHomeBranchCode(icod: string): string | null {
+    const branchCode = icod.slice(0, 2);
+    return this.branchNames[branchCode] ? branchCode : null;
+  }
+
+  private resolveHomeBranchName(icod: string): string | null {
+    const branchCode = this.resolveHomeBranchCode(icod);
+    return branchCode ? this.branchNames[branchCode] : null;
+  }
+
+  private toNumber(value: unknown): number {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+  }
+
+  private roundNumber(value: number): number {
+    return Math.round(value * 10_000) / 10_000;
+  }
+
+  private toCurrency(value: unknown): ProductAvailabilityCurrency {
+    return String(value).toUpperCase() === "USD" ? "USD" : "MXN";
   }
 
 

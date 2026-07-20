@@ -25,6 +25,7 @@ export class Envs {
       EMAIL_PASSWORD: get('EMAIL_PASSWORD').required().asString(),
       MAIL_SERVICE: get('MAIL_SERVICE').asString(),
       EMAIL_HOST: get('EMAIL_HOST').asString(),
+      INTERNAL_API_KEY: get('INTERNAL_API_KEY').asString(),
     }
   }
 }

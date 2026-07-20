@@ -3,11 +3,24 @@ import { GetByEanAndBranchRequestDto } from '../../domain/dto/products/get-by-ea
 
 import { ProductsRepository } from '../../domain/repositories/products.repository';
 import { GetByEanResponseDto } from "../../domain/dto/products/get-by-ean-response.dto";
+import { GetProductAvailabilityRequestDto } from "../../domain/dto/products/get-product-availability-request.dto";
+import { GetProductsAvailabilityBatchRequestDto } from "../../domain/dto/products/get-products-availability-batch-request.dto";
+import { GetErpProductByEanAndBranchUseCase } from "../../use-cases/products/get-product-by-ean-and-branch.use-case";
+import { GetProductAvailabilityUseCase } from "../../use-cases/products/get-product-availability.use-case";
+import { GetProductsAvailabilityBatchUseCase } from "../../use-cases/products/get-products-availability-batch.use-case";
 
 
 export class ProductsController {
 
-  constructor(private readonly repository: ProductsRepository) { }
+  private readonly getByEanAndBranchUseCase: GetErpProductByEanAndBranchUseCase;
+  private readonly getProductAvailabilityUseCase: GetProductAvailabilityUseCase;
+  private readonly getProductsAvailabilityBatchUseCase: GetProductsAvailabilityBatchUseCase;
+
+  constructor(repository: ProductsRepository) {
+    this.getByEanAndBranchUseCase = new GetErpProductByEanAndBranchUseCase(repository);
+    this.getProductAvailabilityUseCase = new GetProductAvailabilityUseCase(repository);
+    this.getProductsAvailabilityBatchUseCase = new GetProductsAvailabilityBatchUseCase(repository);
+  }
 
 
   getProductByEanAndBranch = async (req: Request, res: Response) => {
@@ -23,7 +36,7 @@ export class ProductsController {
     }
 
 
-    this.repository.findByEanAndBranch(dto!)
+    this.getByEanAndBranchUseCase.execute(dto!)
       .then((products: GetByEanResponseDto[]) => {
         res.json(products )
       })
@@ -38,5 +51,47 @@ export class ProductsController {
 
 
 
+  }
+
+  getAvailability = async (req: Request, res: Response): Promise<void> => {
+    const [error, dto] = GetProductAvailabilityRequestDto.execute(req.params.ean);
+    if (error) {
+      res.status(400).json({ error });
+      return;
+    }
+
+    try {
+      const product = await this.getProductAvailabilityUseCase.execute(dto!.ean);
+      if (!product) {
+        res.status(404).json({ error: "Product not found" });
+        return;
+      }
+
+      res.status(200).json(product);
+    } catch (error) {
+      console.error("get_product_availability_failed", error);
+      res.status(500).json({ error: "Internal error" });
+    }
+  }
+
+  getAvailabilityBatch = async (req: Request, res: Response): Promise<void> => {
+    const [error, dto] = GetProductsAvailabilityBatchRequestDto.execute(req.body);
+    if (error) {
+      res.status(400).json({ error });
+      return;
+    }
+
+    try {
+      const items = await this.getProductsAvailabilityBatchUseCase.execute(dto!.eans);
+      res.status(200).json({
+        itemsCount: items.length,
+        requestedCount: dto!.eans.length,
+        missingEans: dto!.eans.filter((ean) => !items.some((item) => item.ean === ean)),
+        items,
+      });
+    } catch (error) {
+      console.error("get_products_availability_batch_failed", error);
+      res.status(500).json({ error: "Internal error" });
+    }
   }
 }
