@@ -3,6 +3,15 @@ import { NextFunction, Request, Response } from "express";
 import { Envs } from "../../config/envs";
 
 export class InternalApiKeyMiddleware {
+  public static validateRequired(req: Request, res: Response, next: NextFunction): void {
+    const configuredKey = Envs.getEnvs().INTERNAL_API_KEY?.trim();
+    if (!configuredKey) {
+      res.status(503).json({ error: "Internal API key is not configured" });
+      return;
+    }
+    InternalApiKeyMiddleware.validate(req, res, next);
+  }
+
   public static validate(req: Request, res: Response, next: NextFunction): void {
     const configuredKey = Envs.getEnvs().INTERNAL_API_KEY?.trim();
     if (!configuredKey) {
