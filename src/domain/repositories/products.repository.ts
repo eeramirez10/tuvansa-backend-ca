@@ -7,6 +7,8 @@ export abstract class ProductsRepository {
     request: GetByEanAndBranchRequestDto
   ): Promise<GetByEanResponseDto[]>
 
+  abstract findByCodeInMexico(code: string): Promise<GetByEanResponseDto | null>
+
   abstract findAvailabilityByEan(ean: string): Promise<ProductAvailabilityDto | null>
 
   abstract findAvailabilityByEans(eans: string[]): Promise<ProductAvailabilityDto[]>

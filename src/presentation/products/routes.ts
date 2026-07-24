@@ -17,6 +17,8 @@ export class ProductsRoutes {
 
     const controller = new ProductsController(repository)
 
+    app.get('/search/mexico', controller.searchMexicoProducts)
+    app.get('/by-code/:code/mexico', controller.getMexicoProductByCode)
     app.get('/by-ean/:ean/branch/:branchId', controller.getProductByEanAndBranch)
     app.get('/:ean/availability', InternalApiKeyMiddleware.validate, controller.getAvailability)
     app.post('/availability/batch', InternalApiKeyMiddleware.validate, controller.getAvailabilityBatch)

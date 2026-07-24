@@ -14,6 +14,10 @@ export class ProductsRepositoryImpl implements ProductsRepository {
     return this.datasource.findByEanAndBranch(request)
   }
 
+  findByCodeInMexico(code: string): Promise<GetByEanResponseDto | null> {
+    return this.datasource.findByCodeInMexico(code)
+  }
+
   findAvailabilityByEan(ean: string): Promise<ProductAvailabilityDto | null> {
     return this.datasource.findAvailabilityByEan(ean)
   }

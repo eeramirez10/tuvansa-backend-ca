@@ -8,6 +8,9 @@ import { GetProductsAvailabilityBatchRequestDto } from "../../domain/dto/product
 import { GetErpProductByEanAndBranchUseCase } from "../../use-cases/products/get-product-by-ean-and-branch.use-case";
 import { GetProductAvailabilityUseCase } from "../../use-cases/products/get-product-availability.use-case";
 import { GetProductsAvailabilityBatchUseCase } from "../../use-cases/products/get-products-availability-batch.use-case";
+import { SearchMexicoProductsRequestDto } from "../../domain/dto/products/search-mexico-products-request.dto";
+import { SearchMexicoProductsUseCase } from "../../use-cases/products/search-mexico-products.use-case";
+import { GetMexicoProductByCodeUseCase } from "../../use-cases/products/get-mexico-product-by-code.use-case";
 
 
 export class ProductsController {
@@ -15,11 +18,50 @@ export class ProductsController {
   private readonly getByEanAndBranchUseCase: GetErpProductByEanAndBranchUseCase;
   private readonly getProductAvailabilityUseCase: GetProductAvailabilityUseCase;
   private readonly getProductsAvailabilityBatchUseCase: GetProductsAvailabilityBatchUseCase;
+  private readonly searchMexicoProductsUseCase: SearchMexicoProductsUseCase;
+  private readonly getMexicoProductByCodeUseCase: GetMexicoProductByCodeUseCase;
 
   constructor(repository: ProductsRepository) {
     this.getByEanAndBranchUseCase = new GetErpProductByEanAndBranchUseCase(repository);
     this.getProductAvailabilityUseCase = new GetProductAvailabilityUseCase(repository);
     this.getProductsAvailabilityBatchUseCase = new GetProductsAvailabilityBatchUseCase(repository);
+    this.searchMexicoProductsUseCase = new SearchMexicoProductsUseCase(repository);
+    this.getMexicoProductByCodeUseCase = new GetMexicoProductByCodeUseCase(repository);
+  }
+
+  searchMexicoProducts = async (req: Request, res: Response): Promise<void> => {
+    const [error, dto] = SearchMexicoProductsRequestDto.execute(req.query.query);
+    if (error) {
+      res.status(400).json({ error });
+      return;
+    }
+
+    try {
+      res.status(200).json(await this.searchMexicoProductsUseCase.execute(dto!.term));
+    } catch (cause) {
+      console.error("search_mexico_products_failed", cause);
+      res.status(500).json({ error: "Internal error" });
+    }
+  }
+
+  getMexicoProductByCode = async (req: Request, res: Response): Promise<void> => {
+    const [error, dto] = SearchMexicoProductsRequestDto.execute(req.params.code);
+    if (error) {
+      res.status(400).json({ error });
+      return;
+    }
+
+    try {
+      const product = await this.getMexicoProductByCodeUseCase.execute(dto!.term);
+      if (!product) {
+        res.status(404).json({ error: "Product not found in Mexico branch" });
+        return;
+      }
+      res.status(200).json(product);
+    } catch (cause) {
+      console.error("get_mexico_product_by_code_failed", cause);
+      res.status(500).json({ error: "Internal error" });
+    }
   }
 
 

@@ -85,6 +85,47 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     }))
   }
 
+  async findByCodeInMexico(code: string): Promise<GetByEanResponseDto | null> {
+    const sql = `
+      SELECT
+        almseq AS id,
+        ICOD AS CODIGO,
+        IEAN AS CLAVE,
+        I2DESCR AS DESCRIPCION,
+        ALMNUM AS ALMACEN_ID,
+        'MEXICO' AS ALMACEN_NOMBRE,
+        ALMCANT AS EXISTENCIA,
+        IUM AS UNIDAD,
+        CASE WHEN IMONEDA1 = '1' THEN 'MXN' ELSE 'USD' END AS MONEDA,
+        ILISTA4 AS COSTO_PROM,
+        ILISTA5 AS COSTO_ULTI
+      FROM FALM
+      LEFT JOIN FINV ON FINV.ISEQ = FALM.ISEQ
+      LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
+      WHERE ICOD = ?
+        AND ITIPO = 1
+        AND ALMNUM = '01'
+      LIMIT 1
+    `;
+    const [rows] = await pool.query<any[]>(sql, [code.trim().toUpperCase()]);
+    const row = rows[0];
+    if (!row) return null;
+
+    return ProductMapper.toGetByEanResponseDto({
+      id: row.id,
+      code: row.CODIGO,
+      ean: row.CLAVE,
+      description: row.DESCRIPCION,
+      stock: row.EXISTENCIA,
+      unit: row.UNIDAD,
+      currency: row.MONEDA,
+      averageCost: row.COSTO_PROM,
+      lastCost: row.COSTO_ULTI,
+      warehouseId: row.ALMACEN_ID,
+      warehouseName: row.ALMACEN_NOMBRE,
+    });
+  }
+
   async findAvailabilityByEan(ean: string): Promise<ProductAvailabilityDto | null> {
     const products = await this.findAvailabilityByEans([ean]);
     return products[0] ?? null;
