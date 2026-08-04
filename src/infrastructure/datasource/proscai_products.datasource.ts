@@ -12,6 +12,28 @@ import { ProductMapper } from "../mappers/product-mapper";
 
 export class ProscaiProductsRepository implements ProductsDatasource {
 
+  private readonly warehouseNames: Record<string, string> = {
+    "00": "ALMACEN CENTRAL",
+    "01": "SUC. MEXICO",
+    "02": "SUC. MONTERREY",
+    "03": "SUC. VERACRUZ",
+    "04": "SUC. MEXICALI",
+    "05": "SUC. QUERETARO",
+    "06": "SUC. CANCUN",
+    "07": "SUC. CABOS",
+    "11": "NO CALIDAD MEX",
+    "12": "RESGUARDO MTY",
+    "13": "RESGUARDO VER",
+    "15": "RESGUARDO QUERETARO",
+    "21": "RESGUARDO MEX",
+    "22": "NO CALIDAD MTY",
+    "23": "RESGUARDO VER",
+    "61": "RESGUARDO MEX",
+    "62": "RESGUARDO MTY",
+    "97": "TRANSITO VER",
+    "99": "TRANSITO MEX",
+  };
+
   private readonly branchNames: Record<string, string> = {
     "01": "MEXICO",
     "02": "MONTERREY",
@@ -26,6 +48,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
   async findByEanAndBranch(request: GetByEanAndBranchRequestDto): Promise<GetByEanResponseDto[]> {
 
     const { ean, branchId } = request
+    const stockWarehouseId = branchId === "01" ? "15" : branchId
 
     console.log({ request })
 
@@ -44,6 +67,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     WHEN '04' THEN 'MEXICALI'
     WHEN '05' THEN 'QUERETARO'
     WHEN '06' THEN 'CANCUN'
+    WHEN '15' THEN 'RESGUARDO QUERETARO'
     ELSE 'DESCONOCIDO'
     END AS ALMACEN_NOMBRE,
     ALMCANT AS EXISTENCIA,
@@ -66,7 +90,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     `
 
     const likeTerm = `%${ean}%`
-    const [rows] = await pool.query<any[]>(productsSql, [likeTerm, likeTerm, likeTerm, branchId])
+    const [rows] = await pool.query<any[]>(productsSql, [likeTerm, likeTerm, likeTerm, stockWarehouseId])
 
 
     return rows.map(row => ProductMapper.toGetByEanResponseDto({
@@ -85,6 +109,71 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     }))
   }
 
+  async findByTermAndWarehouses(term: string, warehouseCodes: string[]): Promise<GetByEanResponseDto[]> {
+    if (warehouseCodes.length === 0) return [];
+
+    const warehousePlaceholders = warehouseCodes.map(() => "?").join(", ");
+    const sql = `
+      SELECT
+        MIN(FALM.almseq) AS id,
+        FINV.ICOD AS CODIGO,
+        FINV.IEAN AS CLAVE,
+        COALESCE(FINV2.I2DESCR, '') AS DESCRIPCION,
+        FALM.ALMNUM AS ALMACEN_ID,
+        COALESCE(SUM(FALM.ALMCANT), 0) AS EXISTENCIA,
+        FINV.IUM AS UNIDAD,
+        CASE WHEN FINV.IMONEDA1 = '1' THEN 'MXN' ELSE 'USD' END AS MONEDA,
+        COALESCE(FINV.ILISTA4, 0) AS COSTO_PROM,
+        COALESCE(FINV.ILISTA5, 0) AS COSTO_ULTI
+      FROM FALM
+      INNER JOIN FINV ON FINV.ISEQ = FALM.ISEQ
+      LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
+      WHERE FINV.ITIPO = 1
+        AND FALM.ALMNUM IN (${warehousePlaceholders})
+        AND (
+          FINV.IEAN LIKE ? OR
+          FINV.ICOD LIKE ? OR
+          FINV2.I2DESCR LIKE ?
+        )
+      GROUP BY
+        FINV.ISEQ,
+        FINV.ICOD,
+        FINV.IEAN,
+        FINV2.I2DESCR,
+        FALM.ALMNUM,
+        FINV.IUM,
+        FINV.IMONEDA1,
+        FINV.ILISTA4,
+        FINV.ILISTA5
+      ORDER BY
+        CASE WHEN COALESCE(SUM(FALM.ALMCANT), 0) > 0 THEN 0 ELSE 1 END,
+        FINV.ICOD,
+        FALM.ALMNUM
+      LIMIT 200
+    `;
+    const likeTerm = `%${term}%`;
+    const [rows] = await pool.query<any[]>(sql, [
+      ...warehouseCodes,
+      likeTerm,
+      likeTerm,
+      likeTerm,
+    ]);
+
+    return rows.map((row) => ProductMapper.toGetByEanResponseDto({
+      id: String(row.id),
+      code: row.CODIGO,
+      ean: row.CLAVE,
+      description: row.DESCRIPCION,
+      stock: row.EXISTENCIA,
+      unit: row.UNIDAD,
+      currency: row.MONEDA,
+      averageCost: row.COSTO_PROM,
+      lastCost: row.COSTO_ULTI,
+      warehouseId: row.ALMACEN_ID,
+      warehouseName: this.warehouseNames[String(row.ALMACEN_ID)] ?? `ALMACEN ${row.ALMACEN_ID}`,
+    }));
+  }
+
   async findByCodeInMexico(code: string): Promise<GetByEanResponseDto | null> {
     const sql = `
       SELECT
@@ -93,7 +182,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
         IEAN AS CLAVE,
         I2DESCR AS DESCRIPCION,
         ALMNUM AS ALMACEN_ID,
-        'MEXICO' AS ALMACEN_NOMBRE,
+        'RESGUARDO QUERETARO' AS ALMACEN_NOMBRE,
         ALMCANT AS EXISTENCIA,
         IUM AS UNIDAD,
         CASE WHEN IMONEDA1 = '1' THEN 'MXN' ELSE 'USD' END AS MONEDA,
@@ -104,7 +193,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
       LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
       WHERE ICOD = ?
         AND ITIPO = 1
-        AND ALMNUM = '01'
+        AND ALMNUM = '15'
       LIMIT 1
     `;
     const [rows] = await pool.query<any[]>(sql, [code.trim().toUpperCase()]);
@@ -131,12 +220,20 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     return products[0] ?? null;
   }
 
-  async findAvailabilityByEans(eans: string[]): Promise<ProductAvailabilityDto[]> {
+  async findAvailabilityByEans(eans: string[], warehouseCodes?: string[]): Promise<ProductAvailabilityDto[]> {
     if (eans.length === 0) return [];
 
     const placeholders = eans.map(() => "?").join(", ");
     const branchCodes = Object.keys(this.branchNames);
-    const branchPlaceholders = branchCodes.map(() => "?").join(", ");
+    const preserveWarehouseCodes = Boolean(warehouseCodes?.length);
+    const stockWarehouseCodes = preserveWarehouseCodes
+      ? Array.from(new Set(warehouseCodes ?? []))
+      : Array.from(new Set([...branchCodes, "15"]));
+    const availabilityNames = preserveWarehouseCodes
+      ? Object.fromEntries(stockWarehouseCodes.map((code) => [code, this.warehouseNames[code] ?? `ALMACEN ${code}`]))
+      : this.branchNames;
+    const inventoryJoin = preserveWarehouseCodes ? "INNER JOIN" : "LEFT JOIN";
+    const branchPlaceholders = stockWarehouseCodes.map(() => "?").join(", ");
     const sql = `
       SELECT
         FINV.ISEQ AS productId,
@@ -153,7 +250,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
         COALESCE(SUM(FALM.ALMCANT), 0) AS stock
       FROM FINV
       LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
-      LEFT JOIN FALM
+      ${inventoryJoin} FALM
         ON FALM.ISEQ = FINV.ISEQ
         AND FALM.ALMNUM IN (${branchPlaceholders})
       WHERE FINV.IEAN IN (${placeholders})
@@ -180,11 +277,16 @@ export class ProscaiProductsRepository implements ProductsDatasource {
         FALM.ALMNUM ASC
     `;
 
-    const [rows] = await pool.query<any[]>(sql, [...branchCodes, ...eans]);
-    return this.mapAvailabilityRows(rows, eans);
+    const [rows] = await pool.query<any[]>(sql, [...stockWarehouseCodes, ...eans]);
+    return this.mapAvailabilityRows(rows, eans, preserveWarehouseCodes, availabilityNames);
   }
 
-  private mapAvailabilityRows(rows: any[], requestedEans: string[]): ProductAvailabilityDto[] {
+  private mapAvailabilityRows(
+    rows: any[],
+    requestedEans: string[],
+    preserveWarehouseCodes: boolean,
+    availabilityNames: Record<string, string>,
+  ): ProductAvailabilityDto[] {
     const products = new Map<string, {
       canonical: any;
       sourceProductCodes: Set<string>;
@@ -203,14 +305,17 @@ export class ProscaiProductsRepository implements ProductsDatasource {
         codes: new Map<string, { canonical: any; branchStock: Map<string, number> }>(),
       };
       const productCode = String(row.productCode ?? "").trim();
-      const branchCode = String(row.branchCode ?? "").trim();
+      const stockWarehouseCode = String(row.branchCode ?? "").trim();
+      const branchCode = preserveWarehouseCodes
+        ? stockWarehouseCode
+        : stockWarehouseCode === "15" ? "01" : stockWarehouseCode;
 
       if (productCode) current.sourceProductCodes.add(productCode);
       const codeAvailability = productCode
         ? current.codes.get(productCode) ?? { canonical: row, branchStock: new Map<string, number>() }
         : null;
 
-      if (this.branchNames[branchCode]) {
+      if (availabilityNames[branchCode]) {
         const stock = this.toNumber(row.stock);
         current.branchStock.set(branchCode, (current.branchStock.get(branchCode) ?? 0) + stock);
         if (codeAvailability) {
@@ -230,13 +335,13 @@ export class ProscaiProductsRepository implements ProductsDatasource {
       const product = products.get(ean);
       if (!product) return [];
 
-      const branches = this.buildBranches(product.branchStock);
+      const branches = this.buildBranches(product.branchStock, availabilityNames, !preserveWarehouseCodes);
       const totalStock = this.roundNumber(branches.reduce((total, branch) => total + branch.stock, 0));
       const sourceProductCodes = Array.from(product.sourceProductCodes).sort();
       const canonical = product.canonical;
       const codes = Array.from(product.codes.entries())
         .map(([icod, code]) => {
-          const codeBranches = this.buildBranches(code.branchStock);
+          const codeBranches = this.buildBranches(code.branchStock, availabilityNames, !preserveWarehouseCodes);
           const codeTotalStock = this.roundNumber(
             codeBranches.reduce((total, branch) => total + branch.stock, 0),
           );
@@ -279,16 +384,22 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     });
   }
 
-  private buildBranches(branchStock: Map<string, number>) {
-    return Object.entries(this.branchNames).map(([branchCode, branchName]) => {
+  private buildBranches(
+    branchStock: Map<string, number>,
+    availabilityNames: Record<string, string>,
+    includeMissing: boolean,
+  ) {
+    return Object.entries(availabilityNames)
+      .filter(([branchCode]) => includeMissing || branchStock.has(branchCode))
+      .map(([branchCode, branchName]) => {
       const stock = this.roundNumber(branchStock.get(branchCode) ?? 0);
       return {
         branchCode,
         branchName,
         stock,
         available: stock > 0,
-      };
-    });
+        };
+      });
   }
 
   private resolveHomeBranchCode(icod: string): string | null {

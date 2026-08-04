@@ -26,6 +26,7 @@ class Envs {
             EMAIL_PASSWORD: (0, env_var_1.get)('EMAIL_PASSWORD').required().asString(),
             MAIL_SERVICE: (0, env_var_1.get)('MAIL_SERVICE').asString(),
             EMAIL_HOST: (0, env_var_1.get)('EMAIL_HOST').asString(),
+            INTERNAL_API_KEY: (0, env_var_1.get)('INTERNAL_API_KEY').asString(),
         };
     }
 }

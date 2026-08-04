@@ -4,7 +4,7 @@ import { ProductsRepository } from "../../domain/repositories/products.repositor
 export class GetProductsAvailabilityBatchUseCase {
   constructor(private readonly repository: ProductsRepository) {}
 
-  public execute(eans: string[]): Promise<ProductAvailabilityDto[]> {
-    return this.repository.findAvailabilityByEans(eans);
+  public execute(eans: string[], warehouseCodes?: string[] | null): Promise<ProductAvailabilityDto[]> {
+    return this.repository.findAvailabilityByEans(eans, warehouseCodes ?? undefined);
   }
 }

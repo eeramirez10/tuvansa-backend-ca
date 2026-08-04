@@ -14,6 +14,10 @@ export class ProductsRepositoryImpl implements ProductsRepository {
     return this.datasource.findByEanAndBranch(request)
   }
 
+  findByTermAndWarehouses(term: string, warehouseCodes: string[]): Promise<GetByEanResponseDto[]> {
+    return this.datasource.findByTermAndWarehouses(term, warehouseCodes)
+  }
+
   findByCodeInMexico(code: string): Promise<GetByEanResponseDto | null> {
     return this.datasource.findByCodeInMexico(code)
   }
@@ -22,8 +26,8 @@ export class ProductsRepositoryImpl implements ProductsRepository {
     return this.datasource.findAvailabilityByEan(ean)
   }
 
-  findAvailabilityByEans(eans: string[]): Promise<ProductAvailabilityDto[]> {
-    return this.datasource.findAvailabilityByEans(eans)
+  findAvailabilityByEans(eans: string[], warehouseCodes?: string[]): Promise<ProductAvailabilityDto[]> {
+    return this.datasource.findAvailabilityByEans(eans, warehouseCodes)
   }
   
 }
