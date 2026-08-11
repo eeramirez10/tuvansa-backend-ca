@@ -10,8 +10,12 @@ class GetByEanResponseDto {
         this.stock = option.stock;
         this.unit = option.unit;
         this.currency = option.currency;
+        this.saleCurrency = option.saleCurrency;
+        this.costCurrency = option.costCurrency;
         this.averageCost = option.averageCost;
         this.lastCost = option.lastCost;
+        this.averageCostMxn = option.averageCostMxn;
+        this.lastCostMxn = option.lastCostMxn;
         this.warehouseId = option.warehouseId;
         this.warehouseName = option.warehouseName;
     }

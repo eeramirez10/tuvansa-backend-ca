@@ -22,6 +22,10 @@ class ProductMapper {
         });
     }
     static toGetByEanResponseDto(json) {
+        var _a, _b, _c;
+        const saleCurrency = (_a = json.saleCurrency) !== null && _a !== void 0 ? _a : json.currency;
+        const averageCostMxn = parseFloat((_b = json.averageCostMxn) !== null && _b !== void 0 ? _b : json.averageCost);
+        const lastCostMxn = parseFloat((_c = json.lastCostMxn) !== null && _c !== void 0 ? _c : json.lastCost);
         return new get_by_ean_response_dto_1.GetByEanResponseDto({
             id: json.id,
             code: json.code,
@@ -29,9 +33,13 @@ class ProductMapper {
             description: json.description,
             stock: parseFloat(json.stock),
             unit: json.unit,
-            currency: json.currency,
-            averageCost: parseFloat(json.averageCost),
-            lastCost: parseFloat(json.lastCost),
+            currency: saleCurrency,
+            saleCurrency,
+            costCurrency: "MXN",
+            averageCost: averageCostMxn,
+            lastCost: lastCostMxn,
+            averageCostMxn,
+            lastCostMxn,
             warehouseId: json.warehouseId,
             warehouseName: json.warehouseName
         });

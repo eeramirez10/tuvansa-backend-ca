@@ -355,7 +355,8 @@ export class ProscaiProductsRepository implements ProductsDatasource {
             costs: {
               average: this.roundNumber(this.toNumber(code.canonical.averageCost)),
               last: this.roundNumber(this.toNumber(code.canonical.lastCost)),
-              currency: this.toCurrency(code.canonical.currency),
+              currency: "MXN" as const,
+              saleCurrency: this.toCurrency(code.canonical.currency),
             },
             totalStock: codeTotalStock,
             availableInAnyBranch: codeTotalStock > 0,
@@ -374,7 +375,8 @@ export class ProscaiProductsRepository implements ProductsDatasource {
         costs: {
           average: this.roundNumber(this.toNumber(canonical.averageCost)),
           last: this.roundNumber(this.toNumber(canonical.lastCost)),
-          currency: this.toCurrency(canonical.currency),
+          currency: "MXN" as const,
+          saleCurrency: this.toCurrency(canonical.currency),
         },
         totalStock,
         availableInAnyBranch: totalStock > 0,

@@ -3,7 +3,8 @@ export type ProductAvailabilityCurrency = "MXN" | "USD";
 export interface ProductAvailabilityCosts {
   average: number;
   last: number;
-  currency: ProductAvailabilityCurrency;
+  currency: "MXN";
+  saleCurrency: ProductAvailabilityCurrency;
 }
 
 export interface ProductBranchAvailability {

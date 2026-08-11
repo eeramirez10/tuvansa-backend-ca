@@ -29,6 +29,10 @@ export class ProductMapper {
 
   static toGetByEanResponseDto(json:Record<string, any>): GetByEanResponseDto {
 
+    const saleCurrency = json.saleCurrency ?? json.currency
+    const averageCostMxn = parseFloat(json.averageCostMxn ?? json.averageCost)
+    const lastCostMxn = parseFloat(json.lastCostMxn ?? json.lastCost)
+
     return new GetByEanResponseDto({
       id:json.id,
       code:json.code,
@@ -36,9 +40,13 @@ export class ProductMapper {
       description:json.description,
       stock: parseFloat(json.stock),
       unit:json.unit,
-      currency:json.currency,
-      averageCost:parseFloat(json.averageCost),
-      lastCost:parseFloat(json.lastCost),
+      currency:saleCurrency,
+      saleCurrency,
+      costCurrency:"MXN",
+      averageCost:averageCostMxn,
+      lastCost:lastCostMxn,
+      averageCostMxn,
+      lastCostMxn,
       warehouseId:json.warehouseId,
       warehouseName: json.warehouseName
     })
