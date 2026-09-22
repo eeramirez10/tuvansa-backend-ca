@@ -54,13 +54,13 @@ export class ProscaiProductsRepository implements ProductsDatasource {
 
     const productsSql = `
     SELECT
-  almseq as id,
+  COALESCE(FALM.almseq, FINV.ISEQ) as id,
   ICOD AS CODIGO,
   IEAN AS CLAVE,
   I2DESCR AS DESCRIPCION,
   FAMB.FAMDESCR AS FAMILIA,
   ALMNUM AS ALMACEN_ID,
-  CASE ALMNUM
+    CASE FALM.ALMNUM
     WHEN '01' THEN 'MEXICO'
     WHEN '02' THEN 'MONTERREY'
     WHEN '03' THEN 'VERACRUZ'
@@ -68,15 +68,17 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     WHEN '05' THEN 'QUERETARO'
     WHEN '06' THEN 'CANCUN'
     WHEN '15' THEN 'RESGUARDO QUERETARO'
-    ELSE 'DESCONOCIDO'
+    ELSE 'SIN ALMACEN ERP'
     END AS ALMACEN_NOMBRE,
     ALMCANT AS EXISTENCIA,
     IUM AS UNIDAD,
     CASE WHEN IMONEDA1 = '1' THEN 'MXN' ELSE 'USD' END AS MONEDA,
     ILISTA4 AS COSTO_PROM,
     ILISTA5 AS COSTO_ULTI
-    FROM FALM
-    LEFT JOIN FINV ON FINV.ISEQ = FALM.ISEQ
+    FROM FINV
+    LEFT JOIN FALM
+      ON FINV.ISEQ = FALM.ISEQ
+      AND FALM.ALMNUM = ?
     LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
     LEFT JOIN FFAM AS FAMB ON FAMB.FAMTNUM = FINV.IFAMB
     WHERE (
@@ -84,13 +86,13 @@ export class ProscaiProductsRepository implements ProductsDatasource {
       ICOD LIKE ? OR
       I2DESCR LIKE ?
     ) AND
-    ITIPO = 1 AND ALMNUM = ?
+    FINV.ITIPO = 1
     limit 10
     
     `
 
     const likeTerm = `%${ean}%`
-    const [rows] = await pool.query<any[]>(productsSql, [likeTerm, likeTerm, likeTerm, stockWarehouseId])
+    const [rows] = await pool.query<any[]>(productsSql, [stockWarehouseId, likeTerm, likeTerm, likeTerm])
 
 
     return rows.map(row => ProductMapper.toGetByEanResponseDto({
@@ -103,7 +105,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
       currency: row.MONEDA,
       averageCost: row.COSTO_PROM,
       lastCost: row.COSTO_ULTI,
-      warehouseId: row.ALMACEN_ID,
+      warehouseId: row.ALMACEN_ID == null ? "" : String(row.ALMACEN_ID),
       warehouseName: row.ALMACEN_NOMBRE,
 
     }))
@@ -115,7 +117,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     const warehousePlaceholders = warehouseCodes.map(() => "?").join(", ");
     const sql = `
       SELECT
-        MIN(FALM.almseq) AS id,
+        COALESCE(MIN(FALM.almseq), FINV.ISEQ) AS id,
         FINV.ICOD AS CODIGO,
         FINV.IEAN AS CLAVE,
         COALESCE(FINV2.I2DESCR, '') AS DESCRIPCION,
@@ -125,11 +127,12 @@ export class ProscaiProductsRepository implements ProductsDatasource {
         CASE WHEN FINV.IMONEDA1 = '1' THEN 'MXN' ELSE 'USD' END AS MONEDA,
         COALESCE(FINV.ILISTA4, 0) AS COSTO_PROM,
         COALESCE(FINV.ILISTA5, 0) AS COSTO_ULTI
-      FROM FALM
-      INNER JOIN FINV ON FINV.ISEQ = FALM.ISEQ
+      FROM FINV
+      LEFT JOIN FALM
+        ON FINV.ISEQ = FALM.ISEQ
+        AND FALM.ALMNUM IN (${warehousePlaceholders})
       LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
       WHERE FINV.ITIPO = 1
-        AND FALM.ALMNUM IN (${warehousePlaceholders})
         AND (
           FINV.IEAN LIKE ? OR
           FINV.ICOD LIKE ? OR
@@ -169,8 +172,10 @@ export class ProscaiProductsRepository implements ProductsDatasource {
       currency: row.MONEDA,
       averageCost: row.COSTO_PROM,
       lastCost: row.COSTO_ULTI,
-      warehouseId: row.ALMACEN_ID,
-      warehouseName: this.warehouseNames[String(row.ALMACEN_ID)] ?? `ALMACEN ${row.ALMACEN_ID}`,
+      warehouseId: row.ALMACEN_ID == null ? "" : String(row.ALMACEN_ID),
+      warehouseName: row.ALMACEN_ID == null
+        ? "SIN ALMACEN ERP"
+        : this.warehouseNames[String(row.ALMACEN_ID)] ?? `ALMACEN ${row.ALMACEN_ID}`,
     }));
   }
 
@@ -232,7 +237,6 @@ export class ProscaiProductsRepository implements ProductsDatasource {
     const availabilityNames = preserveWarehouseCodes
       ? Object.fromEntries(stockWarehouseCodes.map((code) => [code, this.warehouseNames[code] ?? `ALMACEN ${code}`]))
       : this.branchNames;
-    const inventoryJoin = preserveWarehouseCodes ? "INNER JOIN" : "LEFT JOIN";
     const branchPlaceholders = stockWarehouseCodes.map(() => "?").join(", ");
     const sql = `
       SELECT
@@ -250,7 +254,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
         COALESCE(SUM(FALM.ALMCANT), 0) AS stock
       FROM FINV
       LEFT JOIN FINV2 ON FINV2.I2KEY = FINV.ISEQ
-      ${inventoryJoin} FALM
+      LEFT JOIN FALM
         ON FALM.ISEQ = FINV.ISEQ
         AND FALM.ALMNUM IN (${branchPlaceholders})
       WHERE FINV.IEAN IN (${placeholders})
@@ -357,6 +361,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
               last: this.roundNumber(this.toNumber(code.canonical.lastCost)),
               currency: "MXN" as const,
               saleCurrency: this.toCurrency(code.canonical.currency),
+              hasUsableCost: this.hasUsableCost(code.canonical),
             },
             totalStock: codeTotalStock,
             availableInAnyBranch: codeTotalStock > 0,
@@ -377,6 +382,7 @@ export class ProscaiProductsRepository implements ProductsDatasource {
           last: this.roundNumber(this.toNumber(canonical.lastCost)),
           currency: "MXN" as const,
           saleCurrency: this.toCurrency(canonical.currency),
+          hasUsableCost: this.hasUsableCost(canonical),
         },
         totalStock,
         availableInAnyBranch: totalStock > 0,
@@ -417,6 +423,10 @@ export class ProscaiProductsRepository implements ProductsDatasource {
   private toNumber(value: unknown): number {
     const number = Number(value);
     return Number.isFinite(number) ? number : 0;
+  }
+
+  private hasUsableCost(row: { averageCost?: unknown; lastCost?: unknown }): boolean {
+    return Math.max(this.toNumber(row.averageCost), this.toNumber(row.lastCost)) > 0;
   }
 
   private roundNumber(value: number): number {

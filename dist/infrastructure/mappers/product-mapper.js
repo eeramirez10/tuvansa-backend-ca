@@ -26,6 +26,7 @@ class ProductMapper {
         const saleCurrency = (_a = json.saleCurrency) !== null && _a !== void 0 ? _a : json.currency;
         const averageCostMxn = parseFloat((_b = json.averageCostMxn) !== null && _b !== void 0 ? _b : json.averageCost);
         const lastCostMxn = parseFloat((_c = json.lastCostMxn) !== null && _c !== void 0 ? _c : json.lastCost);
+        const hasUsableCost = Math.max(averageCostMxn, lastCostMxn) > 0;
         return new get_by_ean_response_dto_1.GetByEanResponseDto({
             id: json.id,
             code: json.code,
@@ -40,6 +41,7 @@ class ProductMapper {
             lastCost: lastCostMxn,
             averageCostMxn,
             lastCostMxn,
+            hasUsableCost,
             warehouseId: json.warehouseId,
             warehouseName: json.warehouseName
         });

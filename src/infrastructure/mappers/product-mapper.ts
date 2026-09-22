@@ -32,6 +32,7 @@ export class ProductMapper {
     const saleCurrency = json.saleCurrency ?? json.currency
     const averageCostMxn = parseFloat(json.averageCostMxn ?? json.averageCost)
     const lastCostMxn = parseFloat(json.lastCostMxn ?? json.lastCost)
+    const hasUsableCost = Math.max(averageCostMxn, lastCostMxn) > 0
 
     return new GetByEanResponseDto({
       id:json.id,
@@ -47,6 +48,7 @@ export class ProductMapper {
       lastCost:lastCostMxn,
       averageCostMxn,
       lastCostMxn,
+      hasUsableCost,
       warehouseId:json.warehouseId,
       warehouseName: json.warehouseName
     })

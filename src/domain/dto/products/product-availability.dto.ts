@@ -5,6 +5,7 @@ export interface ProductAvailabilityCosts {
   last: number;
   currency: "MXN";
   saleCurrency: ProductAvailabilityCurrency;
+  hasUsableCost: boolean;
 }
 
 export interface ProductBranchAvailability {

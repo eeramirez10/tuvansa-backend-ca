@@ -16,6 +16,7 @@ class GetByEanResponseDto {
         this.lastCost = option.lastCost;
         this.averageCostMxn = option.averageCostMxn;
         this.lastCostMxn = option.lastCostMxn;
+        this.hasUsableCost = option.hasUsableCost;
         this.warehouseId = option.warehouseId;
         this.warehouseName = option.warehouseName;
     }

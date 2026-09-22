@@ -16,6 +16,7 @@ interface GetByEanResponseDtoProps {
   lastCost: number;
   averageCostMxn: number;
   lastCostMxn: number;
+  hasUsableCost: boolean;
   warehouseId: string
   warehouseName: string
 }
@@ -34,6 +35,7 @@ export class GetByEanResponseDto {
   public readonly lastCost: number
   public readonly averageCostMxn: number
   public readonly lastCostMxn: number
+  public readonly hasUsableCost: boolean
   public readonly warehouseId: string
   public readonly warehouseName: string
 
@@ -51,6 +53,7 @@ export class GetByEanResponseDto {
     this.lastCost = option.lastCost
     this.averageCostMxn = option.averageCostMxn
     this.lastCostMxn = option.lastCostMxn
+    this.hasUsableCost = option.hasUsableCost
     this.warehouseId = option.warehouseId
     this.warehouseName = option.warehouseName
   }
