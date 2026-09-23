@@ -10,6 +10,8 @@ import { ProductsRoutes } from "./products/routes";
 import { ErpCustomersRoutes } from "./erp-customers/routes";
 import { ErpUsersRoutes } from "./erp-users/routes";
 import { ErpSuppliersRoutes } from "./erp-suppliers/routes";
+import { ErpQuotesRoutes } from "./erp-quotes/routes";
+import { ErpOrdersRoutes } from "./erp-orders/routes";
 
 
 export class AppRoutes {
@@ -30,6 +32,8 @@ export class AppRoutes {
     router.use('/api/erp/products', ProductsRoutes.routes())
     router.use('/api/erp/customers', ErpCustomersRoutes.routes())
     router.use('/api/erp/suppliers', ErpSuppliersRoutes.routes())
+    router.use('/api/erp/quotes', ErpQuotesRoutes.routes())
+    router.use('/api/erp/orders', ErpOrdersRoutes.routes())
     router.use("/api/erp-users", ErpUsersRoutes.routes());
 
 

@@ -13,6 +13,8 @@ const routes_8 = require("./products/routes");
 const routes_9 = require("./erp-customers/routes");
 const routes_10 = require("./erp-users/routes");
 const routes_11 = require("./erp-suppliers/routes");
+const routes_12 = require("./erp-quotes/routes");
+const routes_13 = require("./erp-orders/routes");
 class AppRoutes {
     static routes() {
         const router = (0, express_1.Router)();
@@ -26,6 +28,8 @@ class AppRoutes {
         router.use('/api/erp/products', routes_8.ProductsRoutes.routes());
         router.use('/api/erp/customers', routes_9.ErpCustomersRoutes.routes());
         router.use('/api/erp/suppliers', routes_11.ErpSuppliersRoutes.routes());
+        router.use('/api/erp/quotes', routes_12.ErpQuotesRoutes.routes());
+        router.use('/api/erp/orders', routes_13.ErpOrdersRoutes.routes());
         router.use("/api/erp-users", routes_10.ErpUsersRoutes.routes());
         return router;
     }
