@@ -4,7 +4,7 @@ import { Envs } from "../../config/envs";
 
 export class InternalApiKeyMiddleware {
   public static validateRequired(req: Request, res: Response, next: NextFunction): void {
-    const configuredKey = Envs.getEnvs().INTERNAL_API_KEY?.trim();
+    const configuredKey = Envs.getErpReadEnvs().INTERNAL_API_KEY?.trim();
     if (!configuredKey) {
       res.status(503).json({ error: "Internal API key is not configured" });
       return;
@@ -13,7 +13,7 @@ export class InternalApiKeyMiddleware {
   }
 
   public static validate(req: Request, res: Response, next: NextFunction): void {
-    const configuredKey = Envs.getEnvs().INTERNAL_API_KEY?.trim();
+    const configuredKey = Envs.getErpReadEnvs().INTERNAL_API_KEY?.trim();
     if (!configuredKey) {
       next();
       return;

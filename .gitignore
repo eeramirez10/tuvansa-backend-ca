@@ -1,5 +1,7 @@
 /src/web/
 .env
+.env.*
+!.env.staging.example
 node_modules
 
 

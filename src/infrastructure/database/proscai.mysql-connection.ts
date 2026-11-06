@@ -9,7 +9,7 @@ const {
   USER_MYSQL,
   PASSWORD_MYSQL,
   DATABASE_MYSQL,
-} = Envs.getEnvs()
+} = Envs.getErpReadEnvs()
 
 export const pool: Pool = mysql.createPool({
   host: HOST_DB_MYSQL,
@@ -17,7 +17,7 @@ export const pool: Pool = mysql.createPool({
   password: PASSWORD_MYSQL,
   database: DATABASE_MYSQL,
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+  connectionLimit: process.env.STAGING_MODE === 'true' ? 3 : 10,
+  queueLimit: process.env.STAGING_MODE === 'true' ? 50 : 0,
   debug: false
 });

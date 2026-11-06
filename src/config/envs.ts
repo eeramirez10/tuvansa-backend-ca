@@ -3,6 +3,17 @@ import 'dotenv/config'
 
 export class Envs {
 
+  static getErpReadEnvs() {
+    return {
+      PORT: get('PORT').required().asPortNumber(),
+      HOST_DB_MYSQL: get('HOST_DB_MYSQL').required().asString(),
+      USER_MYSQL: get('USER_MYSQL').required().asString(),
+      PASSWORD_MYSQL: get('PASSWORD_MYSQL').required().asString(),
+      DATABASE_MYSQL: get('DATABASE_MYSQL').required().asString(),
+      INTERNAL_API_KEY: get('INTERNAL_API_KEY').asString(),
+    };
+  }
+
   static getEnvs() {
     return {
 
