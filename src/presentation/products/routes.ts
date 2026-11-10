@@ -1,4 +1,5 @@
 import { Router } from "express"
+import { inventoryRoutes } from "./inventory.routes"
 import { ProductsController } from "./controller"
 
 import { ProscaiProductsRepository } from "../../infrastructure/datasource/proscai_products.datasource"
@@ -13,6 +14,7 @@ export class ProductsRoutes {
   static routes = (): Router => {
 
     const app = Router()
+    app.use('/inventory', inventoryRoutes())
 
     const datasource = new ProscaiProductsRepository()
 
