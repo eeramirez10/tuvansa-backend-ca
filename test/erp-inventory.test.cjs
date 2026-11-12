@@ -12,7 +12,7 @@ function load(path, overrides = {}) {
   vm.runInNewContext(js, { module, exports: module.exports, Buffer, require: name => overrides[name] || require(name) });
   return module.exports;
 }
-const { parseErpInventoryQuery, normalizeInventoryWarehouseCode } = load('src/domain/dto/products/erp-inventory-query.dto.ts');
+const { parseErpInventoryQuery, normalizeInventoryWarehouseCode, parseInventoryWarehouseScope } = load('src/domain/dto/products/erp-inventory-query.dto.ts');
 const { buildInventoryQueries, ProscaiInventoryDatasource } = load('src/infrastructure/datasource/proscai-inventory.datasource.ts', {
   '../database/proscai.mysql-connection': { pool: { query: async () => { throw new Error('Unexpected database call'); } } },
 });
@@ -51,14 +51,14 @@ test('inventory normalizes search case and NFC without changing warehouse text i
 });
 
 const pythonAvailable = spawnSync('python3', ['--version']).status === 0;
-function fixtureQuery(query) {
-  const sql = buildInventoryQueries(parseErpInventoryQuery(query));
+function fixtureQuery(query, warehouseCodes) {
+  const sql = buildInventoryQueries(parseErpInventoryQuery(query), warehouseCodes);
   // Execute the generated SELECT against an isolated relational fixture, never Proscai.
   const script = `import json, sqlite3, sys, re
 x=json.load(sys.stdin)
 # Translate MySQL's character conversion syntax, retaining Unicode-aware uppercase.
 for key in ('countSql','rowsSql'):
- x[key]=re.sub(r'CONVERT\\((ean|code|description|\\?) USING utf8mb4\\)',r'CAST(\\1 AS TEXT)',x[key])
+ x[key]=re.sub(r'CONVERT\\((ean|code|description|ALMNUM|\\?) USING utf8mb4\\)',r'CAST(\\1 AS TEXT)',x[key]).replace('COLLATE utf8mb4_bin','COLLATE BINARY')
 c=sqlite3.connect(':memory:'); c.row_factory=sqlite3.Row
 c.create_function('GREATEST', -1, max)
 c.create_function('CHAR_LENGTH', 1, lambda s: len(s) if s is not None else None)
@@ -113,6 +113,32 @@ test('case-insensitive SQL and text warehouse filters preserve totals and identi
   }
   assert.equal(fixtureQuery({ warehouseCode: '0|' }).total, 0);
 });
+test('restricted inventory scopes both rows and totals before pagination', { skip: !pythonAvailable }, () => {
+  const result = fixtureQuery({ pageSize: '10' }, ['01', '|']);
+  assert.equal(result.total, 3);
+  assert.deepEqual(result.rows.map(row => [row.warehouseCode, row.stock]), [['01', 7], ['01', 0], ['|', 1.5]]);
+  assert.equal(fixtureQuery({ pageSize: '10', page: '2' }, ['01', '|']).total, 3);
+  assert.deepEqual(fixtureQuery({ pageSize: '10', page: '2' }, ['01', '|']).rows, []);
+  assert.equal(fixtureQuery({ warehouseCode: '02' }, ['01', '|']).total, 0);
+  assert.equal(fixtureQuery({ warehouseCode: '|' }, ['01', '|']).total, 1);
+  assert.equal(fixtureQuery({}, ['anoId']).total, 0);
+  assert.equal(fixtureQuery({}, []).total, 0);
+});
+test('internal scope parses repeatable codes and uses bound placeholders', () => {
+  assert.equal(parseInventoryWarehouseScope(undefined), undefined);
+  assert.deepEqual(Array.from(parseInventoryWarehouseScope('1')), ['01']);
+  const scope = parseInventoryWarehouseScope(['ANOID', '1', '01', '|']);
+  assert.deepEqual(Array.from(scope), ['01', 'ANOID', '|']);
+  for (const value of [null, [], ['\n01'], { code: '01' }, Array(129).fill('01')]) {
+    assert.throws(() => parseInventoryWarehouseScope(value));
+  }
+  const sql = buildInventoryQueries(parseErpInventoryQuery({}), scope);
+  for (const statement of [sql.countSql, sql.rowsSql]) {
+    assert.match(statement, /warehouseCode IN \(\?, \?, \?\)/);
+    assert.doesNotMatch(statement, /ANOID/);
+  }
+  assert.deepEqual(Array.from(sql.params), ['01', 'ANOID', '|']);
+});
 test('datasource maps only the approved fields and preserves null instead of inventing zero', async () => {
   let calls = 0;
   const { ProscaiInventoryDatasource: Source } = load('src/infrastructure/datasource/proscai-inventory.datasource.ts', {
@@ -123,6 +149,19 @@ test('datasource maps only the approved fields and preserves null instead of inv
   const result = await new Source().list(parseErpInventoryQuery({}));
   assert.equal(result.items[0].stock, null); assert.equal(result.items[0].code, '06401952');
   assert.equal('ICTA' in result.items[0], false); assert.equal('ILISTA4' in result.items[0], false);
+});
+test('ERP confirms the scope it applied even when a page has no results', async () => {
+  const calls = [];
+  const { ProscaiInventoryDatasource: Source } = load('src/infrastructure/datasource/proscai-inventory.datasource.ts', {
+    '../database/proscai.mysql-connection': { pool: { query: async (sql, params) => {
+      calls.push({ sql, params: Array.from(params) });
+      return [sql.startsWith('SELECT COUNT') ? [{ total: 0 }] : []];
+    } } },
+  });
+  const result = await new Source().list(parseErpInventoryQuery({}), ['01', '|']);
+  assert.deepEqual(result.warehouseCodes, ['01', '|']);
+  assert.equal(result.total, 0);
+  assert.deepEqual(calls.map(({ params }) => params), [['01', '|'], ['01', '|', 25, 0]]);
 });
 test('staging allows only the two new inventory GET routes', () => {
   const { isReadOnlyErpRequest } = load('src/presentation/staging-read-only.routes.ts');

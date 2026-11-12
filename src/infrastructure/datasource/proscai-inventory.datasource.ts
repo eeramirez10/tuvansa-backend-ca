@@ -12,10 +12,10 @@ interface InventoryRow extends RowDataPacket {
   stock: string | number | null;
 }
 
-const rawWarehouse = `TRIM(CAST(ALMNUM AS CHAR))`;
-const warehouseExpression = `CASE WHEN ${rawWarehouse} REGEXP '^[0-9]+$'
+const rawWarehouse = "TRIM(CONVERT(ALMNUM USING utf8mb4))";
+const warehouseExpression = `(CASE WHEN ${rawWarehouse} REGEXP '^[0-9]+$'
   THEN LPAD(${rawWarehouse}, GREATEST(2, CHAR_LENGTH(${rawWarehouse})), '0')
-  ELSE ${rawWarehouse} END`;
+  ELSE ${rawWarehouse} END) COLLATE utf8mb4_bin`;
 // Aggregate stock independently: multiple FINV2 descriptions must never multiply ALMCANT.
 const inventorySource = `
   FROM (
@@ -29,13 +29,13 @@ const inventorySource = `
     FROM FINV p
     LEFT JOIN (
       SELECT ISEQ, ${warehouseExpression} AS warehouseCode, SUM(ALMCANT) AS stock
-      FROM FALM WHERE ALMNUM IS NOT NULL AND TRIM(CAST(ALMNUM AS CHAR)) <> ''
+      FROM FALM WHERE ALMNUM IS NOT NULL AND ${rawWarehouse} <> ''
       GROUP BY ISEQ, ${warehouseExpression}
     ) a ON a.ISEQ = p.ISEQ
   ) inventory
 `;
 
-export function buildInventoryQueries(query: ErpInventoryQuery) {
+export function buildInventoryQueries(query: ErpInventoryQuery, warehouseCodes?: readonly string[]) {
   const conditions: string[] = [];
   const params: Array<string | number> = [];
   if (query.query) {
@@ -46,6 +46,10 @@ export function buildInventoryQueries(query: ErpInventoryQuery) {
     params.push(term, term, term);
   }
   if (query.warehouseCode) { conditions.push("warehouseCode = ?"); params.push(query.warehouseCode); }
+  if (warehouseCodes !== undefined) {
+    conditions.push(warehouseCodes.length ? `warehouseCode IN (${warehouseCodes.map(() => "?").join(", ")})` : "1 = 0");
+    params.push(...warehouseCodes);
+  }
   const stockFilters = { all: "", positive: "stock > 0", zero: "stock = 0", negative: "stock < 0" };
   if (stockFilters[query.stock]) conditions.push(stockFilters[query.stock]);
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -60,8 +64,8 @@ export function buildInventoryQueries(query: ErpInventoryQuery) {
 }
 
 export class ProscaiInventoryDatasource {
-  async list(query: ErpInventoryQuery) {
-    const sql = buildInventoryQueries(query);
+  async list(query: ErpInventoryQuery, warehouseCodes?: readonly string[]) {
+    const sql = buildInventoryQueries(query, warehouseCodes);
     const [counts] = await pool.query<RowDataPacket[]>(sql.countSql, sql.params);
     const total = Number(counts[0]?.total ?? 0);
     const [rows] = await pool.query<InventoryRow[]>(sql.rowsSql, sql.rowsParams);
@@ -74,13 +78,14 @@ export class ProscaiInventoryDatasource {
         stock: row.stock == null ? null : Number(row.stock),
       })),
       page: query.page, pageSize: query.pageSize, total, totalPages: Math.ceil(total / query.pageSize),
+      ...(warehouseCodes !== undefined && { warehouseCodes }),
     };
   }
 
   async warehouses(): Promise<string[]> {
     const [rows] = await pool.query<RowDataPacket[]>(`
       SELECT DISTINCT ${warehouseExpression} AS code FROM FALM
-      WHERE ALMNUM IS NOT NULL AND TRIM(CAST(ALMNUM AS CHAR)) <> '' ORDER BY code
+      WHERE ALMNUM IS NOT NULL AND ${rawWarehouse} <> '' ORDER BY code
     `);
     return rows.map((row) => String(row.code));
   }

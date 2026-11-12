@@ -17,6 +17,13 @@ export function normalizeInventoryWarehouseCode(value: unknown): string {
   return /^\d+$/.test(code) ? code.padStart(2, "0") : code;
 }
 
+export function parseInventoryWarehouseScope(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined;
+  const codes = Array.isArray(value) ? value : [value];
+  if (codes.length < 1 || codes.length > 128) throw new Error("Selecciona entre 1 y 128 almacenes.");
+  return [...new Set(codes.map(normalizeInventoryWarehouseCode))].sort();
+}
+
 export function parseErpInventoryQuery(input: Record<string, unknown>): ErpInventoryQuery {
   const text = (key: string, fallback = ""): string => {
     const value = input[key];

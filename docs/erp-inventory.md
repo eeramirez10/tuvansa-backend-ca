@@ -18,6 +18,11 @@ texto como ANOID y | conservan su identidad. No se modifica FALM.
 
 Respuesta: `items`, `page`, `pageSize`, `total`, `totalPages`. Cada item contiene
 `id`, `code`, `ean`, `description`, `unit`, `warehouseCode`, `stock`.
+El core puede enviar el parametro interno repetible `warehouseCodes` (hasta
+128 codigos). El alcance se aplica tanto al conteo como a las filas antes de
+paginar, y se intersecta con `warehouseCode` si este se indica. La respuesta
+incluye `warehouseCodes` con el alcance aplicado. No se incluyen productos
+sin FALM en una consulta restringida.
 El catalogo de almacenes devuelve los codigos normalizados presentes en FALM;
 los nombres los resuelve el core, sin inferir sucursales por prefijos.
 
