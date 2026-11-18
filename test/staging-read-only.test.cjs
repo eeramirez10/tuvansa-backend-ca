@@ -30,13 +30,13 @@ test('ERP staging refuses privileged MySQL credentials', () => {
 });
 test('ERP staging accepts query POSTs without allowing writes or communications', () => {
   for (const [method, path] of [
-    ['GET', '/api/erp/products/catalogs'], ['POST', '/api/erp/products/ean-references'],
+    ['GET', '/api/erp/products/identity/01300938'], ['GET', '/api/erp/products/catalogs'], ['POST', '/api/erp/products/ean-references'],
     ['POST', '/api/erp/products/availability/batch'], ['POST', '/api/erp/products/search/warehouses'],
     ['GET', '/api/erp/orders/P021827'], ['GET', '/api/erp/customers/search'],
   ]) assert.equal(isReadOnlyErpRequest(method, path), true);
   for (const [method, path] of [
     ['POST', '/api/auth/user/register'], ['POST', '/api/account-statements/send-email'],
     ['PATCH', '/api/erp/products/catalogs'], ['DELETE', '/api/erp/suppliers/123'],
-    ['POST', '/api/erp/products/import'], ['GET', '/api/erp/customers/monthly-sales-summary'],
+    ['POST', '/api/erp/products/identity/01300938'], ['POST', '/api/erp/products/import'], ['GET', '/api/erp/customers/monthly-sales-summary'],
   ]) assert.equal(isReadOnlyErpRequest(method, path), false);
 });

@@ -1,3 +1,4 @@
+import { ProscaiProductIdentityDatasource } from "../../infrastructure/datasource/proscai-product-identity.datasource"
 import { Router } from "express"
 import { inventoryRoutes } from "./inventory.routes"
 import { ProductsController } from "./controller"
@@ -23,6 +24,23 @@ export class ProductsRoutes {
     const controller = new ProductsController(repository)
     const catalogs = new ProductCatalogsController(new ProscaiProductCatalogsDatasource())
     const eanLookup = new ProscaiEanLookupDatasource()
+
+    const identity = new ProscaiProductIdentityDatasource()
+    app.get('/identity/:code', InternalApiKeyMiddleware.validateRequired, async (req, res) => {
+      const code = String(req.params.code ?? '').trim().toUpperCase()
+      const account = req.query.primaryAccount
+      if (!/^[A-Z0-9][A-Z0-9./_-]{0,12}$/.test(code) || typeof account !== 'string' || !/^111500[1-68]$/.test(account)) {
+        return void res.status(400).json({ error: 'Invalid product code or primary account' })
+      }
+      try {
+        const product = await identity.find(code, account)
+        if (!product) return void res.status(404).json({ error: 'Product not found in the branch catalog' })
+        res.json(product)
+      } catch (error) {
+        console.error('erp_product_identity_failed', error)
+        res.status(500).json({ error: 'Could not verify ERP product identity' })
+      }
+    })
 
     app.get('/catalogs', InternalApiKeyMiddleware.validateRequired, catalogs.list)
     app.post('/ean-references', InternalApiKeyMiddleware.validateRequired, async (req, res) => {
